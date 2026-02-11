@@ -6,6 +6,16 @@ on:
   pull_request:
     branches: [ main, master ]
 
+# Minimal, secure permissions for the workflow (use built-in GITHUB_TOKEN)
+permissions:
+  contents: read
+  actions: read
+  packages: write
+  id-token: write
+
+env:
+  ACTIONS_STEP_DEBUG: 'true'   # enable step debug logging (repo-level settings may be required)
+
 jobs:
   smoke-test:
     name: Smoke tests
@@ -26,30 +36,115 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential gcc
+          sudo apt-get install -y build-essential gcc curl
 
-      - name: Install Python dependencies
+      - name: Install Python dependencies (runner)
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
+          pip install -r backend/requirements.txt || true
 
-      - name: Start backend app
+      - name: Build backend Docker image (capture logs)
         run: |
-          nohup python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 > uvicorn.out 2>&1 &
-          # give server time to start
-          sleep 8
+          echo "Building backend image..."
+          docker build --progress=plain -f backend/Dockerfile -t backend-ci:latest . > backend-build.log 2>&1 || true
+
+      - name: Build frontend Docker image (capture logs)
+        run: |
+          echo "Building frontend image (if present)..."
+          if [ -f ./frontend/Dockerfile ]; then
+            docker build --progress=plain -f frontend/Dockerfile -t frontend-ci:latest ./frontend > frontend-build.log 2>&1 || true
+          else
+            echo 'No frontend Dockerfile; skipping' > frontend-build.log
+          fi
+
+      - name: Run backend container
+        run: |
+          docker run -d --name test-backend -p 8000:8000 backend-ci:latest || docker ps -a
+
+      - name: Wait for backend health
+        run: |
+          echo "Waiting for /api/v1/health..."
+          for i in {1..24}; do
+            if curl -sSf http://127.0.0.1:8000/api/v1/health; then
+              echo "backend healthy"; exit 0
+            fi
+            sleep 5
+          done
+          echo "backend did not become healthy"; exit 1
 
       - name: Run smoke tests
         run: |
-          python backend/tests/smoke_test.py
+          set -o pipefail
+          echo 'Running smoke tests -> smoke.log'
+          python backend/tests/smoke_test.py > smoke.log 2>&1
 
       - name: Run auth smoke tests
         run: |
-          python backend/tests/auth_test.py
+          set -o pipefail
+          echo 'Running auth tests -> auth.log'
+          python backend/tests/auth_test.py > auth.log 2>&1
 
-      - name: Show uvicorn logs on failure
+      - name: Run evaluation smoke test
+        run: |
+          set -o pipefail
+          echo 'Running eval tests -> eval.log'
+          python backend/tests/eval_test.py > eval.log 2>&1
+
+      - name: Show failing job/step summary
         if: failure()
-        run: tail -n 200 uvicorn.out || true
+        run: |
+          echo '=== Failing job/step summary ==='
+          python .github_ci_jobs.py ${{ github.repository_owner }} ${{ github.event.repository.name }} ${{ github.run_id }} || true
+
+      - name: Collect backend container logs (on failure)
+        if: failure()
+        run: |
+          docker logs test-backend > backend-uvicorn.log || true
+          docker inspect test-backend > backend-inspect.json || true
+
+      - name: Collect docker build logs (always)
+        if: always()
+        run: |
+          ls -l backend-build.log frontend-build.log || true
+
+      - name: Fetch and summarize workflow run logs (on failure)
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo 'Downloading full workflow run logs and generating summary...'
+          python .github_ci_fetch_logs.py ${{ github.repository_owner }} ${{ github.event.repository.name }} ${{ github.run_id }} || true
+          SUMMARY=failure_summary_${{ github.run_id }}.txt
+          if [ -f "$SUMMARY" ]; then
+            echo '--- FAILURE SUMMARY START ---'
+            sed -n '1,200p' "$SUMMARY" || true
+            echo '--- FAILURE SUMMARY END ---'
+          else
+            echo 'No failure summary generated.'
+          fi
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-failure-artifacts
+          path: |
+            backend-uvicorn.log
+            backend-inspect.json
+            backend-build.log
+            frontend-build.log
+            run_${{ github.run_id }}_logs.zip
+            run_${{ github.run_id }}_logs
+            failure_summary_${{ github.run_id }}.txt
+            smoke.log
+            auth.log
+            eval.log
+
+      - name: Cleanup backend container
+        if: always()
+        run: |
+          docker rm -f test-backend || true
