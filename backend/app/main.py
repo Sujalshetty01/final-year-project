@@ -6,7 +6,7 @@ Main entry point for the ML backend service
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from slowapi import Limiter
@@ -15,8 +15,14 @@ from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
 
 from app.routes import analysis, health
+from app.routes import evaluate
 from app.model_loader import ModelLoader
+from app.auth_db import init_db, create_user, get_user
 from app.config import get_settings
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from fastapi import Response, Request
+import jwt
+import os
 
 
 settings = get_settings()
@@ -35,6 +41,28 @@ limiter = Limiter(key_func=get_remote_address)
 # Global model loader
 model_loader = ModelLoader()
 
+# Simple JWT auth dependency
+from fastapi.security import HTTPBearer
+
+
+class JWTAuth(HTTPBearer):
+    def __init__(self) -> None:
+        super().__init__()
+
+    async def __call__(self, request: Request):
+        header = request.headers.get('authorization')
+        if not header:
+            return None
+        token = header.split(' ', 1)[-1]
+        secret = os.environ.get('JWT_SECRET', 'dev-secret')
+        try:
+            payload = jwt.decode(token, secret, algorithms=['HS256'])
+            return payload
+        except Exception:
+            return None
+
+jwt_auth = JWTAuth()
+
 
 
 @asynccontextmanager
@@ -43,6 +71,13 @@ async def lifespan(app: FastAPI):
     global model_loader
     logger.info("Starting Malware Classification API...")
     try:
+        # Initialize auth DB and ensure admin user exists
+        init_db()
+        admin_user = os.environ.get('REVIEW_USER', 'admin')
+        admin_pass = os.environ.get('REVIEW_PASS', 'admin')
+        # create admin user if missing
+        if get_user(admin_user) is None:
+            create_user(admin_user, admin_pass)
         # Ensure models exist and are loaded (fallback to placeholder if missing)
         model_loader._ensure_models()
         logger.info("Models loaded successfully (with fallback if needed)")
@@ -67,6 +102,7 @@ def create_app() -> FastAPI:
     # Add state for model loader
     app.state.model_loader = model_loader
     app.state.limiter = limiter
+    app.state.revoked_tokens = set()
     
     # CORS Configuration
     app.add_middleware(
@@ -92,6 +128,22 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(health.router, prefix="/api/v1", tags=["Health"])
     app.include_router(analysis.router, prefix="/api/v1", tags=["Analysis"])
+    # auth router (login)
+    from app.routes import auth
+    app.include_router(auth.router, prefix="/api/v1", tags=["Auth"])
+    # evaluation router (protected)
+    app.include_router(evaluate.router, prefix="/api/v1", tags=["Evaluation"], dependencies=[Depends(jwt_auth)])
+
+    @app.get('/metrics')
+    async def metrics_endpoint():
+        data = generate_latest()
+        return Response(content=data, media_type=CONTENT_TYPE_LATEST)
+
+    # expose analysis result cache for evaluation route
+    try:
+        app.state.results_cache = analysis.results_cache
+    except Exception:
+        app.state.results_cache = {}
     
     return app
 
