@@ -61,9 +61,24 @@ jobs:
             echo 'No frontend Dockerfile; skipping' > frontend-build.log
           fi
 
-      - name: Run backend container
+      - name: Start backend (container or direct)
         run: |
-          docker run -d --name test-backend -p 8000:8000 backend-ci:latest || docker ps -a
+          # Try to start the backend in a container; if that fails (e.g., docker hub auth),
+          # fall back to launching uvicorn directly in the runner.
+          set -e
+          echo "Attempting to start backend container..."
+          if docker run -d --name test-backend -p 8000:8000 backend-ci:latest > /dev/null 2>&1; then
+            echo "Backend started in container"
+            echo "BACKEND_MODE=container" >> $GITHUB_ENV
+          else
+            echo "Container start failed, falling back to direct uvicorn run"
+            # Ensure Python deps are available (installed earlier). Start uvicorn in background.
+            export PYTHONPATH=.
+            nohup python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 > backend-uvicorn.log 2>&1 &
+            echo $! > backend.pid || true
+            echo "Backend started as process (uvicorn)"
+            echo "BACKEND_MODE=process" >> $GITHUB_ENV
+          fi
 
       - name: Wait for backend health (more tolerant)
         run: |
