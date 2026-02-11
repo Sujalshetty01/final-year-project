@@ -1,3 +1,70 @@
+# Malware Classification (review-ready)
+
+<!-- CI badge placeholder: replace OWNER/REPO with your repository -->
+![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)
+
+Short review-ready project for malware classification (FastAPI + Docker).
+
+Quick start
+
+1. Build and run the stack:
+
+```bash
+docker-compose up -d --build
+```
+
+Authentication (JWT)
+--------------------
+
+1. Get a token:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/login -H "Content-Type: application/json" -d '{"username":"admin","password":"admin"}'
+```
+
+2. Use the returned `access_token` in `Authorization: Bearer <token>` for protected endpoints (e.g., `/api/v1/evaluate/summary`).
+
+3. To refresh an access token:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/refresh -H "Content-Type: application/json" -d '{"refresh_token":"<refresh>"}'
+```
+
+
+2. Health check:
+
+```bash
+curl http://localhost:8000/api/v1/health
+```
+
+3. Run smoke test locally:
+
+```bash
+python backend/tests/smoke_test.py
+```
+
+Notes
+- The `v1.0-first-review` tag exists locally; provide a remote to push the tag.
+- CI workflow runs the smoke test; the badge above is a placeholder — update with your repo path.
+
+Push tag (optional)
+
+If you want to publish the review tag to GitHub, set a remote and push the tag locally:
+
+Bash example:
+
+```bash
+git remote add origin git@github.com:OWNER/REPO.git
+git push origin main
+git push origin v1.0-first-review --force
+```
+
+Helper scripts are available in `scripts/`:
+
+- `scripts/push_tag.sh <remote-url> [branch]` — Linux/macOS
+- `scripts/push_tag.ps1 -RemoteUrl <url> [-Branch main]` — Windows PowerShell
+
+Replace `OWNER/REPO` with your repository path before pushing.
 # MALWARE CLASSIFICATION USING DEEP LEARNING
 
 ## Graph Neural Networks for Network-Based Behavior Analysis
@@ -390,6 +457,46 @@ Results include:
 
 - Download JSON report with full analysis details
 - Reuse analysis_id to retrieve cached results
+
+---
+
+## Local verification & debug
+
+If Docker is running but you see proxy/404 issues when calling localhost, restart the backend and verify the auth DB and debug endpoint as follows.
+
+1. Restart the backend service:
+
+```bash
+docker-compose up -d backend
+```
+
+2. Confirm health and debug endpoints (use 127.0.0.1 to avoid proxying):
+
+```bash
+curl http://127.0.0.1:8000/api/v1/health
+curl http://127.0.0.1:8000/api/v1/debug/auth
+```
+
+3. Run the built-in smoke tests and auth tests:
+
+```bash
+# general smoke test
+python backend/tests/smoke_test.py
+
+# auth rotation & revocation tests
+python backend/tests/auth_test.py
+```
+
+Notes:
+- If your shell inherits HTTP(S)_PROXY or corporate proxy settings, disable them for the session when testing local endpoints (PowerShell example):
+
+```powershell
+setx HTTP_PROXY ""
+setx HTTPS_PROXY ""
+```
+
+- Model artifacts are stored in `backend/models` and are ignored by `.gitignore`. For review, demo artifacts were generated locally; to publish them, create a release asset or remove them from `.gitignore` before committing (not recommended for large binaries).
+
 
 ### **Using REST API Directly**
 
@@ -1187,4 +1294,3 @@ For questions or issues, contact:
 - **Guide:** Prof. Vinitha V
 - **Institution:** BMS Institute of Technology
 - **Academic Year:** 2025-2026
-
