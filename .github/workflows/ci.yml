@@ -106,11 +106,8 @@ jobs:
           echo 'Running eval tests -> eval.log'
           python backend/tests/eval_test.py > eval.log 2>&1
 
-      - name: Show failing job/step summary
-        if: failure()
-        run: |
-          echo '=== Failing job/step summary ==='
-          python .github_ci_jobs.py ${{ github.repository_owner }} ${{ github.event.repository.name }} ${{ github.run_id }} || true
+      # Note: job/step summary via API removed to avoid external API calls from runner.
+      # Failure detection and summary are generated from local logs below.
 
       - name: Collect backend container logs (on failure)
         if: failure()

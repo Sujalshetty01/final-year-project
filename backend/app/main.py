@@ -87,9 +87,17 @@ async def lifespan(app: FastAPI):
         # create admin user if missing
         if get_user(admin_user) is None:
             create_user(admin_user, admin_pass)
-        # Ensure models exist and are loaded (fallback to placeholder if missing)
-        model_loader._ensure_models()
-        logger.info("Models loaded successfully (with fallback if needed)")
+        # Ensure models exist and start loading in background so startup is fast
+        import asyncio
+        async def _load_models_bg():
+            try:
+                await asyncio.to_thread(model_loader._ensure_models)
+                logger.info("Background model loading completed")
+            except Exception as e:
+                logger.error(f"Background model loading failed: {e}")
+
+        # kick off background model loading and attach task to app state
+        app.state.models_loading_task = asyncio.create_task(_load_models_bg())
     except Exception as e:
         logger.error(f"Failed to load models: {str(e)}")
         raise
