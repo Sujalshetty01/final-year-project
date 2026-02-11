@@ -111,20 +111,59 @@ jobs:
         run: |
           ls -l backend-build.log frontend-build.log || true
 
-      - name: Fetch and summarize workflow run logs (on failure)
+      - name: Generate and print FAILURE SUMMARY from local logs
         if: failure()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo 'Downloading full workflow run logs and generating summary...'
-          python .github_ci_fetch_logs.py ${{ github.repository_owner }} ${{ github.event.repository.name }} ${{ github.run_id }} || true
+          echo 'Scanning local logs to generate failure summary...'
+          SUMMARY=failure_summary_${{ github.run_id }}.txt
+          echo "Run: ${{ github.run_id }}" > "$SUMMARY"
+          echo "Repository: ${{ github.repository }}" >> "$SUMMARY"
+          echo "Workflow: ${{ github.workflow }}" >> "$SUMMARY"
+          echo "Job: ${{ github.job }}" >> "$SUMMARY"
+          echo "" >> "$SUMMARY"
+
+          echo 'Searching for obvious failure signatures...' >> "$SUMMARY"
+
+          # Health check failures
+          if grep -q "backend did not become healthy" backend-build.log backend-uvicorn.log smoke.log 2>/dev/null; then
+            echo 'Root cause hint: backend health probe failed (service did not start or crashed).' >> "$SUMMARY"
+          fi
+
+          # Curl/connect errors
+          grep -E "curl: \(7\)|curl: \(56\)|Failed to connect|Connection reset by peer" -H --line-number backend-uvicorn.log smoke.log backend-build.log 2>/dev/null | sed -n '1,20p' >> "$SUMMARY" || true
+
+          # Look for Python tracebacks and ERROR lines in logs
+          echo "" >> "$SUMMARY"
+          echo "Recent ERROR/Traceback excerpts (from backend-uvicorn.log and smoke.log):" >> "$SUMMARY"
+          (grep -nE "Traceback|Exception|ERROR|CRITICAL" backend-uvicorn.log smoke.log 2>/dev/null || true) | sed -n '1,200p' >> "$SUMMARY"
+
+          # Docker build failures (last lines)
+          echo "" >> "$SUMMARY"
+          echo "Docker build tail (backend-build.log):" >> "$SUMMARY"
+          tail -n 200 backend-build.log 2>/dev/null >> "$SUMMARY" || true
+
+          # Container inspect quick info
+          echo "" >> "$SUMMARY"
+          echo "Container inspect (short):" >> "$SUMMARY"
+          if [ -f backend-inspect.json ]; then
+            jq '.State, .Config' backend-inspect.json 2>/dev/null | sed -n '1,200p' >> "$SUMMARY" || true
+          fi
+
+          # Print to console with delimiters
+          echo '--- FAILURE SUMMARY START ---'
+          sed -n '1,400p' "$SUMMARY" || true
+          echo '--- FAILURE SUMMARY END ---'
+
+      - name: Expose FAILURE SUMMARY as grouped console output
+        if: failure()
+        run: |
           SUMMARY=failure_summary_${{ github.run_id }}.txt
           if [ -f "$SUMMARY" ]; then
-            echo '--- FAILURE SUMMARY START ---'
-            sed -n '1,200p' "$SUMMARY" || true
-            echo '--- FAILURE SUMMARY END ---'
+            echo "::group::FAILURE SUMMARY (full)"
+            cat "$SUMMARY" || true
+            echo "::endgroup::"
           else
-            echo 'No failure summary generated.'
+            echo "No failure summary to display.";
           fi
 
       - name: Upload failure artifacts
