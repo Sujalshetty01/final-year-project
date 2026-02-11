@@ -65,16 +65,28 @@ jobs:
         run: |
           docker run -d --name test-backend -p 8000:8000 backend-ci:latest || docker ps -a
 
-      - name: Wait for backend health
+      - name: Wait for backend health (more tolerant)
         run: |
-          echo "Waiting for /api/v1/health..."
-          for i in {1..24}; do
-            if curl -sSf http://127.0.0.1:8000/api/v1/health; then
-              echo "backend healthy"; exit 0
+          echo "Waiting for backend readiness (/api/v1/ready or /api/v1/health)..."
+          # Try /ready first (should become true when models are loaded), fall back to /health
+          for i in {1..60}; do
+            echo "Attempt $i: probing /api/v1/ready"
+            if curl -sSf --max-time 3 http://127.0.0.1:8000/api/v1/ready; then
+              echo "backend ready"; exit 0
+            fi
+            echo "Attempt $i: probing /api/v1/health"
+            if curl -sSf --max-time 3 http://127.0.0.1:8000/api/v1/health; then
+              echo "backend healthy (health endpoint responded)"; exit 0
+            fi
+            # show recent container logs to help debugging in CI logs
+            if docker ps -a --filter "name=test-backend" --format "{{.Names}}" | grep -q test-backend; then
+              echo "---- recent backend logs (tail 50) ----"
+              docker logs --tail 50 test-backend || true
+              echo "---- end logs ----"
             fi
             sleep 5
           done
-          echo "backend did not become healthy"; exit 1
+          echo "backend did not become healthy after extended wait"; exit 1
 
       - name: Run smoke tests
         run: |
