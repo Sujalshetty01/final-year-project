@@ -8,8 +8,8 @@ on:
 
 # Minimal, secure permissions for the workflow (use built-in GITHUB_TOKEN)
 permissions:
-  contents: read
-  actions: read
+  contents: write
+  actions: write
   packages: write
   id-token: write
 
@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BACKEND_BASE_URL: http://127.0.0.1:8000
+      MAX_AUTO_FIXES: 2
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -191,6 +192,21 @@ jobs:
           else
             echo "No failure summary to display.";
           fi
+
+      - name: Auto-fix and push (attempt limited automated fixes)
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          echo 'Attempting automated fix pass (conservative)'
+          SUMMARY=failure_summary_${{ github.run_id }}.txt
+          if [ ! -f "$SUMMARY" ]; then
+            echo 'No failure summary present; skipping auto-fix'; exit 0
+          fi
+          python .github/auto_fix.py --summary "$SUMMARY" --max-fixes ${{ env.MAX_AUTO_FIXES }} || true
 
       - name: Print collected logs (backend-uvicorn, smoke, build) for immediate inspection
         if: failure()
