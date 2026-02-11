@@ -53,14 +53,22 @@ class JWTAuth(HTTPBearer):
     async def __call__(self, request: Request):
         header = request.headers.get('authorization')
         if not header:
-            return None
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Missing authorization header')
         token = header.split(' ', 1)[-1]
         secret = os.environ.get('JWT_SECRET', 'dev-secret')
+        # Enforce HTTPS in production if configured
+        require_https = os.environ.get('REQUIRE_HTTPS', 'false').lower() in ('1', 'true', 'yes')
+        if require_https:
+            scheme = request.url.scheme
+            if scheme != 'https':
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='HTTPS required')
         try:
             payload = jwt.decode(token, secret, algorithms=['HS256'])
             return payload
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Token expired')
         except Exception:
-            return None
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
 
 jwt_auth = JWTAuth()
 

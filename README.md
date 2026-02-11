@@ -47,6 +47,13 @@ Notes
 - The `v1.0-first-review` tag exists locally; provide a remote to push the tag.
 - CI workflow runs the smoke test; the badge above is a placeholder — update with your repo path.
 
+Security & Production JWT guidance
+---------------------------------
+
+- Set a strong secret in production: `JWT_SECRET` must be a long, random string and stored securely (e.g., secrets manager).
+- To require HTTPS for incoming requests in production, set `REQUIRE_HTTPS=true` in the environment. This enforces that tokens are only accepted over HTTPS.
+- Consider using a persistent user store (DB) and short-lived access tokens + rotating refresh tokens (this project persists refresh tokens in `auth.db`).
+
 Push tag (optional)
 
 If you want to publish the review tag to GitHub, set a remote and push the tag locally:
