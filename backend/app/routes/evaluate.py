@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Request, Depends, HTTPException
+import os
+import jwt
+import logging
+
+logger = logging.getLogger('app.routes.evaluate')
 from typing import Any
 from sklearn.metrics import confusion_matrix, roc_curve
 import numpy as np
@@ -8,11 +13,21 @@ import numpy as np
 router = APIRouter()
 
 
-def require_auth(request: Request, token=Depends(lambda: None)):
-    # token is provided by JWTAuth dependency attached in main via DI
-    if token is None:
+def require_auth(request: Request):
+    # Minimal JWT check: validate Authorization header and decode token
+    header = request.headers.get('authorization')
+    logger.info(f"evaluate.require_auth header={header}")
+    if not header:
         raise HTTPException(status_code=401, detail='Unauthorized')
-    return True
+    token = header.split(' ', 1)[-1]
+    secret = os.environ.get('JWT_SECRET', 'dev-secret')
+    try:
+        jwt.decode(token, secret, algorithms=['HS256'])
+        return True
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail='Token expired')
+    except Exception:
+        raise HTTPException(status_code=401, detail='Unauthorized')
 
 
 @router.get('/evaluate/summary')
