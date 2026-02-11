@@ -15,6 +15,7 @@ from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
 
 from app.routes import analysis, health
+from app.routes import debug
 from app.routes import evaluate
 from app.model_loader import ModelLoader
 from app.auth_db import init_db, create_user, get_user
@@ -131,6 +132,7 @@ def create_app() -> FastAPI:
     # auth router (login)
     from app.routes import auth
     app.include_router(auth.router, prefix="/api/v1", tags=["Auth"])
+    app.include_router(debug.router, prefix="/api/v1", tags=["Debug"]) 
     # evaluation router (protected)
     app.include_router(evaluate.router, prefix="/api/v1", tags=["Evaluation"], dependencies=[Depends(jwt_auth)])
 
