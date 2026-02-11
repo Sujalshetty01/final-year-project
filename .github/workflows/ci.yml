@@ -178,6 +178,33 @@ jobs:
             echo "No failure summary to display.";
           fi
 
+      - name: Print collected logs (backend-uvicorn, smoke, build) for immediate inspection
+        if: failure()
+        run: |
+          echo "::group::Backend Uvicorn Log (backend-uvicorn.log)"
+          if [ -f backend-uvicorn.log ]; then
+            sed -n '1,400p' backend-uvicorn.log || true
+          else
+            echo "backend-uvicorn.log not present"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::Smoke test log (smoke.log)"
+          if [ -f smoke.log ]; then
+            sed -n '1,400p' smoke.log || true
+          else
+            echo "smoke.log not present"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::Backend build tail (backend-build.log)"
+          if [ -f backend-build.log ]; then
+            tail -n 400 backend-build.log || true
+          else
+            echo "backend-build.log not present"
+          fi
+          echo "::endgroup::"
+
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
