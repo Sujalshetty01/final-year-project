@@ -46,6 +46,10 @@ jobs:
         run: |
           python backend/tests/smoke_test.py
 
+      - name: Run auth smoke tests
+        run: |
+          python backend/tests/auth_test.py
+
       - name: Show uvicorn logs on failure
         if: failure()
         run: tail -n 200 uvicorn.out || true
