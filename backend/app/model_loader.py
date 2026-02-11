@@ -6,9 +6,13 @@ import networkx as nx
 import torch.nn as nn
 import torch.nn.functional as F
 import logging
+from prometheus_client import Counter
 
 logger = logging.getLogger("model_loader")
 logging.basicConfig(level=logging.INFO)
+
+# Prometheus metrics
+INFERENCE_COUNTER = Counter('malware_inference_requests_total', 'Total inference requests')
 
 MODELS_DIR = os.path.join(os.path.dirname(__file__), '../models')
 GNN_MODEL_PATH = os.path.join(MODELS_DIR, 'gnn_model.pt')
@@ -74,6 +78,13 @@ class ModelLoader:
             self.models_loaded = False
             logger.error("Model loading failed; fallback activated")
 
+    def get_status(self) -> dict:
+        return {
+            'models_loaded': self.models_loaded,
+            'gnn': self.gnn_model is not None,
+            'baseline': self.baseline_model is not None
+        }
+
     def is_ready(self):
         return self.models_loaded
 
@@ -83,6 +94,10 @@ class ModelLoader:
         Returns a fixed benign/malware prediction with confidence.
         """
         logger.info("Inference request received")
+        try:
+            INFERENCE_COUNTER.inc()
+        except Exception:
+            pass
         # For demonstration, always return benign with 0.5 confidence
         return {
             'gnn_prediction': {
@@ -108,5 +123,25 @@ class ModelLoader:
                 'average_clustering': 0.0
             }
         }
+
+    def explain(self, node_idx: int = 0, **kwargs) -> dict:
+        """Return explanation for a node using GNNExplainer when available."""
+        try:
+            from torch_geometric.explain import GNNExplainer
+            if self.gnn_model is None:
+                return {'error': 'GNN model not loaded'}
+            self.gnn_model.eval()
+            explainer = GNNExplainer(self.gnn_model, epochs=20)
+            # For placeholder, create small graph tensors
+            x = torch.randn(5, 10)
+            edge_index = torch.tensor([[0,1,2,3],[1,2,3,4]], dtype=torch.long)
+            node_feat_mask, edge_mask = explainer.explain_node(node_idx, x, edge_index)
+            return {
+                'node_feat_mask': node_feat_mask.tolist() if hasattr(node_feat_mask, 'tolist') else [],
+                'edge_mask': edge_mask.tolist() if hasattr(edge_mask, 'tolist') else []
+            }
+        except Exception as e:
+            logger.warning(f'Explainability not available: {e}')
+            return {'error': 'explainability not available', 'detail': str(e)}
 
 
