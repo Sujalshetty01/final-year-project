@@ -1,12 +1,28 @@
 import urllib.request
 import json
 import sys
+import os
 
-BASE = "http://localhost:8000"
+# Allow overriding the backend base URL via env var for local runs
+RAW_BASE = os.getenv('BACKEND_BASE_URL')
+if not RAW_BASE:
+    RAW_BASE = os.getenv('BACKEND_HOST')
+    if RAW_BASE:
+        host = RAW_BASE
+        port = os.getenv('BACKEND_PORT', '8000')
+        RAW_BASE = f'http://{host}:{port}'
+    else:
+        RAW_BASE = 'http://localhost:8000'
+
+# Normalize to an API base that always ends with /api/v1
+if RAW_BASE.rstrip('/').endswith('/api/v1'):
+    BASE = RAW_BASE.rstrip('/')
+else:
+    BASE = RAW_BASE.rstrip('/') + '/api/v1'
 
 
 def get_health():
-    url = f"{BASE}/api/v1/health"
+    url = f"{BASE}/health"
     try:
         with urllib.request.urlopen(url, timeout=10) as r:
             body = r.read().decode()
@@ -16,7 +32,7 @@ def get_health():
 
 
 def post_analyze():
-    url = f"{BASE}/api/v1/analyze"
+    url = f"{BASE}/analyze"
     payload = {
         "network_flows": [
             {

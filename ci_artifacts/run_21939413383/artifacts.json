@@ -1,0 +1,25 @@
+{
+  "total_count": 1,
+  "artifacts": [
+    {
+      "id": 5479251972,
+      "node_id": "MDg6QXJ0aWZhY3Q1NDc5MjUxOTcy",
+      "name": "ci-failure-artifacts",
+      "size_in_bytes": 18997,
+      "url": "https://api.github.com/repos/Sujalshetty01/final-year-project/actions/artifacts/5479251972",
+      "archive_download_url": "https://api.github.com/repos/Sujalshetty01/final-year-project/actions/artifacts/5479251972/zip",
+      "expired": false,
+      "digest": "sha256:1e73a962a6ec250ac6a17e6642f2073b963cd3c3630280afa60a20aece98c767",
+      "created_at": "2026-02-12T08:48:47Z",
+      "updated_at": "2026-02-12T08:48:47Z",
+      "expires_at": "2026-05-13T08:40:22Z",
+      "workflow_run": {
+        "id": 21939413383,
+        "repository_id": 1155130515,
+        "head_repository_id": 1155130515,
+        "head_branch": "master",
+        "head_sha": "8707562d8f0d529d18a9bf7884c1dbb802f4180e"
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+body { font-family: Arial, sans-serif; margin: 24px; }
+#app { max-width: 900px; margin: auto; }
+#controls { margin-bottom: 12px; }
+#confidence-bars { display:flex; gap:8px; margin:8px 0 }
+.bar { flex:1; height:24px; background:#eee; position:relative; border-radius:4px; overflow:hidden }
+.bar > .fill { height:100%; width:0%; background:#4caf50 }
+.bar.malware > .fill { background:#e53935 }
+#risk { margin-top:8px; padding:6px; border-radius:4px }
+.risk-low { background:#e8f5e9; color:#2e7d32 }
+.risk-medium { background:#fff3e0; color:#ef6c00 }
+.risk-high { background:#ffebee; color:#c62828 }
+table { width:100%; border-collapse:collapse; margin-top:8px }
+table th, table td { border:1px solid #ddd; padding:6px; text-align:left }
+#feature-importances { margin-top:8px }

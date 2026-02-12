@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Malware UI Prototype</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <h1>Malware Classification — Prototype UI</h1>
+    <div id="controls">
+      <input id="sampleId" placeholder="sample id or file" />
+      <button id="analyze">Analyze</button>
+      <button id="download">Download Report</button>
+    </div>
+
+    <div id="result">
+      <section id="summary">
+        <h2>Prediction</h2>
+        <div id="confidence-bars"></div>
+        <div id="risk" class="risk-low">Risk: <span id="risk-val">N/A</span></div>
+      </section>
+
+      <section id="metrics">
+        <h3>Graph Metrics</h3>
+        <ul id="graph-metrics"></ul>
+      </section>
+
+      <section id="comparison">
+        <h3>Model Comparison</h3>
+        <table id="model-compare"><thead><tr><th>Model</th><th>Label</th><th>Confidence</th></tr></thead><tbody></tbody></table>
+      </section>
+
+      <section id="explain">
+        <h3>Explanation</h3>
+        <p id="explain-text">No explanation yet.</p>
+        <ul id="feature-importances"></ul>
+      </section>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

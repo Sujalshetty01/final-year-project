@@ -1,9 +1,21 @@
 import sys
 import json
+import os
 import urllib.request
 import urllib.error
 
-BASE = 'http://127.0.0.1:8000/api/v1'
+# Allow overriding base URL for local runs
+RAW_BASE = os.getenv('BACKEND_BASE_URL')
+if not RAW_BASE:
+    host = os.getenv('BACKEND_HOST', '127.0.0.1')
+    port = os.getenv('BACKEND_PORT', '8000')
+    RAW_BASE = f'http://{host}:{port}'
+
+# Normalize to an API base that always ends with /api/v1
+if RAW_BASE.rstrip('/').endswith('/api/v1'):
+    BASE = RAW_BASE.rstrip('/')
+else:
+    BASE = RAW_BASE.rstrip('/') + '/api/v1'
 
 
 def fail(msg: str):

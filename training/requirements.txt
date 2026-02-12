@@ -1,0 +1,12 @@
+numpy>=1.24
+pandas
+scikit-learn>=1.2
+matplotlib
+seaborn
+torch>=2.1
+joblib
+reportlab
+pyyaml
+networkx
+jsonschema
+scikit-image

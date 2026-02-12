@@ -8,6 +8,7 @@ import time
 from app import auth_db
 from datetime import datetime, timedelta
 import uuid
+import logging
 
 router = APIRouter()
 
@@ -34,18 +35,18 @@ async def login(req: LoginRequest):
         if req.username != user or req.password != pwd:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid credentials')
     secret = os.environ.get('JWT_SECRET', 'dev-secret')
-    access_exp = datetime.utcnow() + timedelta(minutes=30)
-    refresh_exp = datetime.utcnow() + timedelta(days=7)
+    # Use time.time() to compute epoch seconds to avoid naive-datetime timezone issues
+    now_ts = int(time.time())
     jti = str(uuid.uuid4())
-    access_payload = {'sub': req.username, 'exp': int(access_exp.timestamp()), 'jti': jti}
-    refresh_payload = {'sub': req.username, 'exp': int(refresh_exp.timestamp()), 'jti': jti}
+    access_payload = {'sub': req.username, 'exp': now_ts + 30 * 60, 'jti': jti}
+    refresh_payload = {'sub': req.username, 'exp': now_ts + 7 * 24 * 3600, 'jti': jti}
     access_token = jwt.encode(access_payload, secret, algorithm='HS256')
     refresh_token = jwt.encode(refresh_payload, secret, algorithm='HS256')
     # persist refresh token jti
     try:
-        auth_db.store_refresh_token(jti, req.username, int(refresh_exp.timestamp()))
-    except Exception:
-        pass
+        auth_db.store_refresh_token(jti, req.username, refresh_payload.get('exp'))
+    except Exception as e:
+        logging.getLogger(__name__).exception('Failed to store refresh token jti')
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
@@ -65,17 +66,16 @@ async def refresh_token(req: RefreshRequest, request: Request):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Refresh token revoked or expired')
     # rotate refresh token: issue new refresh jti and revoke old
     new_jti = str(uuid.uuid4())
-    access_exp = datetime.utcnow() + timedelta(minutes=30)
-    refresh_exp = datetime.utcnow() + timedelta(days=7)
-    access_payload = {'sub': payload.get('sub'), 'exp': int(access_exp.timestamp()), 'jti': new_jti}
-    refresh_payload = {'sub': payload.get('sub'), 'exp': int(refresh_exp.timestamp()), 'jti': new_jti}
+    now_ts = int(time.time())
+    access_payload = {'sub': payload.get('sub'), 'exp': now_ts + 30 * 60, 'jti': new_jti}
+    refresh_payload = {'sub': payload.get('sub'), 'exp': now_ts + 7 * 24 * 3600, 'jti': new_jti}
     access_token = jwt.encode(access_payload, secret, algorithm='HS256')
     refresh_token = jwt.encode(refresh_payload, secret, algorithm='HS256')
     try:
-        auth_db.store_refresh_token(new_jti, payload.get('sub'), int(refresh_exp.timestamp()))
+        auth_db.store_refresh_token(new_jti, payload.get('sub'), refresh_payload.get('exp'))
         auth_db.revoke_refresh(old_jti)
-    except Exception:
-        pass
+    except Exception as e:
+        logging.getLogger(__name__).exception('Failed to rotate refresh token jti')
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 

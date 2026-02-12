@@ -1,9 +1,21 @@
 import sys
 import json
+import os
 import urllib.request
 import urllib.error
 
-BASE = 'http://127.0.0.1:8000/api/v1'
+# Allow overriding base URL for local runs
+RAW_BASE = os.getenv('BACKEND_BASE_URL')
+if not RAW_BASE:
+    host = os.getenv('BACKEND_HOST', '127.0.0.1')
+    port = os.getenv('BACKEND_PORT', '8000')
+    RAW_BASE = f'http://{host}:{port}'
+
+# Normalize to an API base that always ends with /api/v1
+if RAW_BASE.rstrip('/').endswith('/api/v1'):
+    BASE = RAW_BASE.rstrip('/')
+else:
+    BASE = RAW_BASE.rstrip('/') + '/api/v1'
 
 
 def fail(msg: str):
@@ -49,14 +61,33 @@ def get(path, headers=None):
 
 
 def main():
-    # 1) login to get access token
+    # 1) login to get access and refresh tokens
     code, tokens = post('/login', {'username': 'admin', 'password': 'admin'})
     if code != 200:
         fail(f'login failed: {code} {tokens}')
     at = tokens.get('access_token')
-    if not at:
-        fail('access token missing from login')
+    rt = tokens.get('refresh_token')
+    if not at or not rt:
+        fail('access or refresh token missing from login')
     ok('login returned access token')
+
+    # rotate immediately to ensure a fresh access token (avoid clock/expiry edge cases)
+    code_r, tokens_r = post('/refresh', {'refresh_token': rt})
+    if code_r != 200:
+        fail(f'refresh failed: {code_r} {tokens_r}')
+    at = tokens_r.get('access_token')
+    if not at:
+        fail('rotated access token missing from refresh')
+    ok('rotated access token obtained')
+
+    # debug: print token payload and local time to help diagnose expiry issues
+    try:
+        import jwt, time as _t
+        payload = jwt.decode(at, options={"verify_signature": False})
+        print('DEBUG: token payload', payload)
+        print('DEBUG: now', int(_t.time()), 'exp', payload.get('exp'))
+    except Exception as e:
+        print('DEBUG: failed to decode token payload', e)
 
     # 2) send a sample /analyze to populate results_cache
     sample = {
