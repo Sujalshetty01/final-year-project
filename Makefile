@@ -1,3 +1,27 @@
+VENV=.venv
+PY=python
+
+.PHONY: venv install run docker-build docker-run smoke-test
+
+venv:
+	$(PY) -m venv $(VENV)
+	@echo "activated with: source $(VENV)/bin/activate (Unix) or & $(VENV)\\Scripts\\Activate.ps1 (Windows)"
+
+install: venv
+	$(VENV)/Scripts/pip install --upgrade pip
+	$(VENV)/Scripts/pip install -r backend/requirements.txt
+
+run:
+	$(VENV)/Scripts/uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+
+docker-build:
+	docker build -t dl-malware-api:latest .
+
+docker-run:
+	docker run --rm -p 8000:8000 -e MODEL_PATH=/app/out/models/model.onnx -v $(shell pwd)/out/models:/app/out/models dl-malware-api:latest
+
+smoke-test:
+	$(VENV)/Scripts/python scripts/smoke_test.py --model out/models/model.onnx
 # Makefile for Malware Classification System
 # Provides convenient shortcuts for common operations
 
