@@ -97,6 +97,91 @@ The next section formulates the problem precisely and details the flow graph con
 
 This section describes concrete implementation choices, software libraries, deployment artifacts, and engineering notes needed to reproduce the pipeline.
 
+\subsection{Flow-to-Graph Construction (Expanded)}
+
+We preprocess raw NetFlow/IPFIX-style records into compact directed graphs using a configurable aggregation window $T$ (seconds). The construction pipeline performs the following steps:
+
+\begin{enumerate}
+	\item Filter flows by time window and optional IP prefix allow/deny lists.
+	\item Aggregate flows by endpoint or endpoint:port tuples depending on the chosen node granularity.
+	\item Create directed edges for observed flows. For multiple observed flows between the same node pair inside the window, collapse into a single edge with aggregated statistics (sum, mean, count, min, max, inter-arrival times).
+	\item Compute node features by aggregating per-node statistics (degree, total bytes, unique peers, role score) and embedding categorical attributes (protocol, service) via one-hot or learned embeddings.
+	\item Normalize continuous features per-dataset using running statistics saved with the experiment configuration.
+\end{enumerate}
+
+Algorithmically, the graph construction function $C(F;\theta_C)$ can be implemented as shown in pseudocode:
+
+\begin{verbatim}
+function build_flow_graph(F, window_T, node_type="endpoint"):
+	keep = filter_by_time(F, window_T)
+	nodes = {}
+	edges = {}
+	for f in keep:
+		u = node_id(f.src, node_type)
+		v = node_id(f.dst, node_type)
+		nodes.add(u); nodes.add(v)
+		if (u,v) not in edges: edges[(u,v)] = init_edge_stats()
+		edges[(u,v)].update_with_flow(f)
+		nodes[u].update_with_flow_out(f)
+		nodes[v].update_with_flow_in(f)
+	return Graph(nodes, edges)
+\end{verbatim}
+
+The resulting graph is then converted to tensors compatible with the chosen graph library (PyG or DGL), including an edge index array, node feature matrix $X$, and an edge feature tensor $E_f$.
+
+\subsection{Feature Engineering}
+
+Key node features used in experiments:
+\begin{itemize}
+	\item Degree (in/out), total bytes sent/received, packet counts.
+	\item Unique peers count and entropy of peer distribution.
+	\item Role indicators (server-like: high in-degree on server ports, client-like: many outgoing connections).
+	\item Temporal statistics: mean inter-arrival time, burstiness score.
+\end{itemize}
+
+Edge features include:
+\begin{itemize}
+	\item Aggregated byte/packet statistics (sum, mean, max) within the window.
+	\item Flow duration statistics and time-of-day encoding.
+	\item Flags summary (binary vector) and protocol embedding.
+\end{itemize}
+
+All features are standardized (z-score) using statistics computed on the training set. Categorical features are encoded with small learned embeddings.
+
+\subsection{Model Architecture (Expanded)}
+
+The proposed model uses a hybrid GraphSAGE + GCN backbone with edge-conditioned message passing. Concretely:
+
+\begin{itemize}
+	\item Input: node features $X$ and edge features $E_f$.
+	\item Edge MLP: small MLP that maps $E_f$ to edge weights or modulation vectors used to condition message aggregation.
+	\item Message passing: three layers where each layer performs neighbor aggregation (mean) followed by a node MLP; skip connections and layer normalization are applied between layers.
+	\item Readout: global mean pooling followed by an MLP classifier with dropout and a sigmoid output for binary classification.
+\end{itemize}
+
+We experimented with attention-based aggregation (GAT-style) in an ablation but found mean-aggregation with edge-conditioning offered a favorable accuracy/latency tradeoff.
+
+\subsection{Training Details (Expanded)}
+
+We use the following practical engineering recipes to improve robustness and reproducibility:
+\begin{itemize}
+	\item Class balancing: weighted binary cross-entropy with positive class weight inversely proportional to its frequency.
+	\item Data augmentation: random node/edge dropout and temporal jitter within the window to simulate sampling.
+	\item Checkpointing: best model by validation AUC saved and exported to ONNX for inference tests.
+	\item Deterministic runs: set global seeds and use deterministic cuDNN flags when applicable; save config and RNG state with each experiment.
+\end{itemize}
+
+\subsection{Evaluation Artifacts}
+
+We provide example scripts that produce ROC and precision-recall plots, confusion matrices, and per-class reports under `out/eval/`. Example figure placeholders appear in the PDF; replace with generated plots from `out/eval/` when available.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.45\textwidth]{eval/roc_curve.png}
+\caption{Example ROC curve for the proposed model (placeholder).}
+\label{fig:roc}
+\end{figure}
+
 \subsection{Software Stack}
 
 The implementation uses Python 3.10+ and the following primary libraries:
