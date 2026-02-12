@@ -66,9 +66,47 @@ def try_load_model(path: str):
         model_session = sess
         model_input_names = [inp.name for inp in sess.get_inputs()]
         model_output_names = [out.name for out in sess.get_outputs()]
-        model_loaded = True
+        # Perform a tiny smoke inference to ensure the model is usable.
+        try:
+            # Prepare a minimal input based on first input's shape
+            inp = sess.get_inputs()[0]
+            inp_shape = []
+            for d in inp.shape:
+                if isinstance(d, str) or d is None:
+                    inp_shape.append(1)
+                else:
+                    inp_shape.append(max(1, int(d)))
+            import numpy as _np
+
+            x = _np.zeros(tuple(inp_shape), dtype=_np.float32)
+            feed = {inp.name: x}
+            _ = sess.run(None, feed)
+            model_loaded = True
+        except Exception:
+            model_loaded = False
     except Exception:
         model_loaded = False
+
+
+model_ready = False
+if model_loaded:
+    # set model_ready True only if model_loaded and we can run a lightweight check
+    try:
+        if model_session is not None and len(model_session.get_inputs()) > 0:
+            inp = model_session.get_inputs()[0]
+            import numpy as _np
+
+            inp_shape = []
+            for d in inp.shape:
+                if isinstance(d, str) or d is None:
+                    inp_shape.append(1)
+                else:
+                    inp_shape.append(max(1, int(d)))
+            x = _np.zeros(tuple(inp_shape), dtype=_np.float32)
+            _ = model_session.run(None, {inp.name: x})
+            model_ready = True
+    except Exception:
+        model_ready = False
 
 
 # Attempt to load model at startup
@@ -124,6 +162,7 @@ async def health_check():
     return JSONResponse({
         "status": "ok",
         "model_loaded": bool(model_loaded),
+        "model_ready": bool(model_ready),
         "model_path": MODEL_PATH if model_loaded else None,
     })
 
