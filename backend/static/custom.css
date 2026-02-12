@@ -1,0 +1,72 @@
+/* Custom dark theme for Swagger UI */
+:root {
+  --bg-color: #0b1220;
+  --card-bg: #0f1724;
+  --muted: #9aa6b2;
+  --accent: #1f8feb;
+  --accent-2: #7dd3fc;
+  --text: #e6eef6;
+}
+
+body {
+  background: var(--bg-color) !important;
+  color: var(--text) !important;
+}
+
+.swagger-ui .topbar {
+  background: linear-gradient(90deg, #071029 0%, #0b2440 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.swagger-ui .topbar .topbar-wrapper img {
+  height: 36px;
+  width: auto;
+}
+
+.swagger-ui .scheme-container,
+.swagger-ui .info, .wrapper {
+  background: transparent !important;
+}
+
+.opblock-summary-method, .opblock-summary-path {
+  color: var(--text) !important;
+}
+
+.opblock {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+  border: 1px solid rgba(255,255,255,0.03);
+}
+
+.try-out, .execute, .authorize {
+  background: var(--accent) !important;
+  color: black !important;
+}
+
+/* Hide default Swagger logo image (we use CSS-based logo) */
+.swagger-ui .topbar .link img { display: none; }
+
+/* Insert a custom logo in the topbar */
+.swagger-ui .topbar .topbar-wrapper {
+  display: flex;
+  align-items: center;
+}
+.swagger-ui .topbar .topbar-wrapper:before {
+  content: "";
+  display: inline-block;
+  background-image: url('/static/logo.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  width: 140px;
+  height: 36px;
+  margin-right: 12px;
+}
+
+/* Darken code blocks and request/response boxes */
+.swagger-ui pre, .swagger-ui code, .response-col_description {
+  background: #071220 !important;
+  color: var(--text) !important;
+}
+
+.info .title {
+  color: var(--text) !important;
+}
