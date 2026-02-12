@@ -84,14 +84,15 @@ def find_pids_on_port(port: int):
     try:
         if sys.platform.startswith('win'):
             out = subprocess.check_output(['netstat', '-ano'], text=True, stderr=subprocess.DEVNULL)
+            import re
+            # Robustly find lines that include :port and end with a numeric PID
+            pattern = re.compile(rf"^(?:TCP|UDP)\s+\S+:{port}\b.*?\s(\d+)$", re.IGNORECASE)
             for line in out.splitlines():
-                parts = line.split()
-                if len(parts) >= 5 and parts[0] in ('TCP','UDP'):
-                    local = parts[1]
-                    if local.endswith(f':{port}'):
-                        pid = parts[-1]
-                        if pid.isdigit():
-                            pids.add(int(pid))
+                m = pattern.search(line)
+                if m:
+                    pid = m.group(1)
+                    if pid.isdigit() and pid != '0':
+                        pids.add(int(pid))
         else:
             # Linux / macOS: use lsof
             out = subprocess.check_output(['lsof', '-i', f':{port}', '-t'], text=True, stderr=subprocess.DEVNULL)
