@@ -60,16 +60,23 @@ def run_cmd(cmd, **kwargs):
     return subprocess.run(cmd, **kwargs)
 
 
-def install_requirements():
+def install_requirements(strict: bool = True):
     req = ROOT / 'backend' / 'requirements.txt'
     if not req.exists():
         print('No backend/requirements.txt found; skipping pip install')
         return True
     print('Installing backend requirements...')
-    rc = run_cmd([sys.executable, '-m', 'pip', 'install', '-r', str(req)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    if rc.returncode != 0:
-        print('pip install returned non-zero; continuing anyway')
-    return rc.returncode == 0
+    # capture output to help diagnose failures
+    out_path = ROOT / 'scripts' / 'pip_install_output.log'
+    with open(out_path, 'wb') as out_f:
+        proc = subprocess.run([sys.executable, '-m', 'pip', 'install', '-r', str(req)], stdout=out_f, stderr=subprocess.STDOUT)
+    if proc.returncode != 0:
+        print(f'pip install failed (see {out_path})')
+        if strict:
+            return False
+        else:
+            print('Continuing despite pip install failure (non-strict mode)')
+    return proc.returncode == 0
 
 
 def find_pids_on_port(port: int):
@@ -176,9 +183,13 @@ def run_runner_and_capture():
     env['BACKEND_PORT'] = str(PORT)
     env['BACKEND_BASE_URL'] = BASE_URL
     print('Running local_test_fix_runner...')
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, text=True, cwd=str(ROOT))
-    out, _ = proc.communicate()
-    print('--- Runner Output ---')
+    runner_log = ROOT / 'scripts' / 'runner_output.log'
+    with open(runner_log, 'w', encoding='utf-8') as f:
+        proc = subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT, env=env, text=True, cwd=str(ROOT))
+        proc.wait()
+    with open(runner_log, 'r', encoding='utf-8') as f:
+        out = f.read()
+    print(f'--- Runner Output (saved to {runner_log}) ---')
     print(out)
     success = proc.returncode == 0
     return success, out
