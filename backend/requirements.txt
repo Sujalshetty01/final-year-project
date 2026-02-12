@@ -1,17 +1,21 @@
-# ML dependencies (from requirements-ml.txt)
-torch==2.1.1
-torch-geometric==2.4.0
-networkx==3.2.1
-numpy==1.24.3
-pandas==2.1.3
-scikit-learn==1.3.2
-joblib==1.3.2
+# Backend requirements
+# This file purposely references the CPU-friendly core requirements to
+# avoid installing GPU-specific PyTorch wheels during local development/CI.
+
+-r ..\requirements-cpu.txt
+
+# Notes:
+# - Install PyTorch separately depending on your platform.
+#   CPU-only example (Windows/Linux):
+#     pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchaudio
+# - For GPU/CUDA, follow the official selector at https://pytorch.org/get-started/locally/
+#   and use the generated install command to get matching CUDA-enabled wheels.
+# - `torch-geometric` requires a matching PyTorch version and platform-specific wheels;
+#   install it after PyTorch according to https://pytorch-geometric.readthedocs.io/.
+
+# Optional monitoring/auth libraries (if not covered by requirements-cpu.txt):
 prometheus_client==0.16.0
 PyJWT==2.8.0
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic==2.5.0
-pydantic-settings==2.1.0
-python-multipart==0.0.6
-slowapi==0.1.9
-pandas
+
+# FastAPI stack (kept minimal here; core versions managed by requirements-cpu.txt):
+# fastapi and uvicorn are included in requirements-cpu.txt
