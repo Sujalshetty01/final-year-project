@@ -26,11 +26,12 @@ jobs:
 
       - name: Compile paper (1st run)
         run: |
-          pdflatex -interaction=nonstopmode -output-directory paper paper/ieee_paper_main.tex
+          mkdir -p paper || true
+          pdflatex -interaction=nonstopmode -output-directory paper paper/ieee_paper_main.tex 2>&1 | tee paper/build.log
 
       - name: Compile paper (2nd run)
         run: |
-          pdflatex -interaction=nonstopmode -output-directory paper paper/ieee_paper_main.tex
+          pdflatex -interaction=nonstopmode -output-directory paper paper/ieee_paper_main.tex 2>&1 | tee -a paper/build.log
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
