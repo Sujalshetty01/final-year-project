@@ -47,6 +47,35 @@ This project demonstrates an end-to-end GNN pipeline for flow classification, fr
 - **Usage:** Clone the repo, create the `.venv`, install requirements, run `python scripts/auto_local_runner.py` to validate the end-to-end flow locally (installs, starts backend, runs smoke tests, and optionally commits fixes).
 - **Practical Notes:** The repository includes automation that attempts to detect and remediate common environment issues (missing packages, port collisions). For reproducible installs on CPU-only machines, update `backend/requirements.txt` to use CPU-compatible PyTorch wheels or a permissive `torch>=` spec.
 
+## Expanded Details & Quick Start
+
+- **Quick start (local):**
+	1. Create and activate a virtual environment: `python -m venv .venv` and `& .venv\Scripts\Activate.ps1` (Windows) or `source .venv/bin/activate` (Unix).
+	2. Install dependencies: `pip install -r backend/requirements.txt`.
+	3. Generate a small synthetic dataset: `python data/generate_sample.py --out out/sample/`.
+	4. Train a quick model (short run): `python models/train.py --data out/sample/ --epochs 5 --out out/models/quick`.
+	5. Export to ONNX: `python models/export_onnx.py --checkpoint out/models/quick/best.pt --out out/models/quick/model.onnx`.
+	6. Start the backend: `uvicorn backend.main:app --reload` and run `python backend/smoke_test.py` to verify the `/api/v1/analyze` endpoint.
+
+- **Project Structure (more detail):**
+	- `data/` — generators, converters from flow CSVs to graph tensors, and small utilities for sampling and augmentation.
+	- `models/` — GNN model definitions (`graphsage`, `gcn`), training loop, evaluation scripts, and export helpers to ONNX.
+	- `backend/` — FastAPI app, authentication shim, Prometheus metrics, and lightweight inference wrapper using ONNX Runtime.
+	- `scripts/` — convenience scripts for local runs, reproducible experiments, and the `auto_local_runner.py` harness.
+	- `out/` — default artifact output (checkpoints, ONNX models, plots, reports). Keep this directory in `.gitignore` for large artifacts.
+
+- **Testing & CI:**
+	- Unit and integration tests live under `backend/tests/` and `models/tests/` (where present).
+	- CI workflow runs `scripts/auto_local_runner.py` conservatively: it will skip heavy workloads and only run smoke/e2e checks unless explicitly enabled.
+	- When CI artifacts are uploaded, look under the workflow run artifacts for `out/eval/` exports and `logs/build.log` for build transcripts.
+
+- **Reproducibility notes:**
+	- Use pinned dataset seeds (see `data/config.yaml`) to reproduce training runs exactly.
+	- For CI and reproducible experiments, prefer CPU-friendly PyTorch specs in `backend/requirements.txt` or use a pinned wheel for the target platform.
+
+- **Contributing & Contact:**
+	- Add issues for feature requests, plus a short PR describing dataset and model changes.
+
 ## Next Steps (Suggested)
 
 - Update `backend/requirements.txt` to avoid strict GPU-only pins for `torch` when targeting CPU environments.
