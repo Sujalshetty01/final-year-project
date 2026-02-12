@@ -39,3 +39,36 @@ jobs:
         with:
           name: smoke-test-results
           path: test-output/smoke_result.json
+
+  checks:
+    name: Lint & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dev deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest || true
+
+      - name: Run flake8 (if config present)
+        run: |
+          if [ -f .flake8 ] || grep -q "flake8" requirements-cpu.txt || grep -q "flake8" backend/requirements.txt; then
+            flake8 || exit 1
+          else
+            echo "No flake8 configured; skipping"
+          fi
+
+      - name: Run pytest (if tests folder exists)
+        run: |
+          if [ -d tests ] || [ -d backend/tests ]; then
+            pytest -q
+          else
+            echo "No tests found; skipping"
+          fi
