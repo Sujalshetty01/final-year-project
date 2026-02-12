@@ -79,7 +79,8 @@ function Try-Install-MiKTeX {
     $installer = Join-Path $tmp 'basic-miktex-installer.exe'
     $urls = @(
         'https://miktex.org/download/ctan/systems/win32/miktex/setup/basic-miktex-x64.exe',
-        'https://ctan.org/tex-archive/systems/win32/miktex/setup/basic-miktex-x64.exe'
+        'https://ctan.org/tex-archive/systems/win32/miktex/setup/basic-miktex-x64.exe',
+        'https://mirrors.ctan.org/systems/win32/miktex/setup/basic-miktex-x64.exe'
     )
     $downloaded = $false
     foreach ($u in $urls) {
@@ -95,13 +96,30 @@ function Try-Install-MiKTeX {
     }
 
     # Try common unattended flags. The exact flag set differs between installers; try a few.
-    $attempts = @( '--unattended', '/S', '/quiet', '/silent' )
+    $attempts = @(
+        '--unattended',
+        '--unattended --enable-automatic-updates',
+        '/S',
+        '/VERYSILENT',
+        '/S /VERYSILENT /SUPPRESSMSGBOXES'
+    )
     foreach ($flag in $attempts) {
         try {
-            Write-Log "Running installer with flag: $flag"
-            $proc = Start-Process -FilePath $installer -ArgumentList $flag -Wait -PassThru -WindowStyle Hidden
-            if ($proc.ExitCode -eq 0) { Write-Log "Installer finished (exit 0)"; return $true }
-        } catch { Write-Log "Installer attempt ($flag) failed: $_" }
+            Write-Log "Running installer with flags: $flag"
+            $args = $flag -split ' '
+            $proc = Start-Process -FilePath $installer -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
+            Write-Log "Installer exit code: $($proc.ExitCode)"
+            if ($proc.ExitCode -eq 0) {
+                Write-Log "Installer finished (exit 0)";
+                # try to run initexmf maintenance if available
+                $init = Get-Command initexmf -ErrorAction SilentlyContinue
+                if ($init) {
+                    try { initexmf --update-fndb } catch {}
+                    try { initexmf --mkmaps } catch {}
+                }
+                return $true
+            }
+        } catch { Write-Log "Installer attempt failed: $_" }
     }
 
     Write-Log "MiKTeX installer did not succeed silently. Manual intervention may be required."

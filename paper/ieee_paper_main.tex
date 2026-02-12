@@ -42,38 +42,38 @@ The remainder of the paper is organized as follows. Section II motivates the pro
 
 \subsection{Background and Challenges}
 
-Network flow records typically capture the following per-flow attributes: source IP, destination IP, source port, destination port, protocol, byte and packet counts, start time, end time, and flags. Let each raw flow record be denoted as a tuple f = (s, d, sp, dp, proto, bytes, pkts, t_start, t_end, flags). A naive approach maps f to a feature vector x_f and trains a standard classifier. While this can be effective for simple single-flow anomalies, many malware behaviors are characterized by patterns across multiple flows: repeated beaconing to a set of command-and-control endpoints, staged downloads across several hosts, or lateral movement inside a network.
+Network flow records typically capture the following per-flow attributes: source IP, destination IP, source port, destination port, protocol, byte and packet counts, start time, end time, and flags. Let each raw flow record be denoted as a tuple \texttt{f = (s, d, sp, dp, proto, bytes, pkts, t\_start, t\_end, flags)}. A naive approach maps $f$ to a feature vector $x_f$ and trains a standard classifier. While this can be effective for simple single-flow anomalies, many malware behaviors are characterized by patterns across multiple flows: repeated beaconing to a set of command-and-control endpoints, staged downloads across several hosts, or lateral movement inside a network.
 
-Graph construction addresses this by creating a graph G = (V, E) where V is a set of nodes and E is a set of directed edges. We consider two common design choices for nodes: endpoint-level nodes (representing IP addresses or anonymized host identifiers), and aggregate nodes (representing endpoint:port tuples or flow clusters). Edges are created for observed flows: an observed flow from node u to node v corresponds to a directed edge e_{u->v} with an associated feature vector x_e that summarizes the flow attributes and short-term statistics.
+Graph construction addresses this by creating a graph $G = (V, E)$ where $V$ is a set of nodes and $E$ is a set of directed edges. We consider two common design choices for nodes: endpoint-level nodes (representing IP addresses or anonymized host identifiers), and aggregate nodes (representing endpoint:port tuples or flow clusters). Edges are created for observed flows: an observed flow from node $u$ to node $v$ corresponds to a directed edge $e_{u\to v}$ with an associated feature vector $x_e$ that summarizes the flow attributes and short-term statistics.
 
 Two key challenges arise when using flow graphs in practice: first, graphs are variable in size and degree, requiring batching strategies that preserve structural information; second, the telemetry may be incomplete due to sampling, NAT, or encryption, which can obscure malicious signals. We adopt standard normalization and padding techniques to create fixed-size batches by sampling or truncation and use attention-based aggregation to emphasize salient neighbors.
 
 \subsection{Notation}
 
-We denote a graph by G = (V, E) with N = |V| nodes. The node feature matrix is X \\in R^{N \\times F} and the adjacency matrix is A \\in {0,1}^{N \\times N} for unweighted edges, or A \\in R^{N \\times N} when edge weights are present. A common preprocessing step constructs the symmetric normalized adjacency 
+We denote a graph by $G = (V, E)$ with $N = |V|$ nodes. The node feature matrix is $X \in \mathbb{R}^{N \times F}$ and the adjacency matrix is $A \in \{0,1\}^{N \times N}$ for unweighted edges, or $A \in \mathbb{R}^{N \times N}$ when edge weights are present. A common preprocessing step constructs the symmetric normalized adjacency
 
 \begin{equation}
-\hat{A} = A + I, \\quad \hat{D}_{ii} = \\sum_j \hat{A}_{ij},
+\hat{A} = A + I, \quad \hat{D}_{ii} = \sum_j \hat{A}_{ij},
 \end{equation}
 
 and the normalized form used in GCN layers is
 
 \begin{equation}
-\\tilde{A} = \\hat{D}^{-1/2} \\hat{A} \\hat{D}^{-1/2}.
+\tilde{A} = \hat{D}^{-1/2} \hat{A} \hat{D}^{-1/2}.
 \end{equation}
 
-For node embeddings H^{(l)} \\in R^{N \\times D_l} at layer l, the standard GCN propagation rule is written as
+For node embeddings $H^{(l)} \in \mathbb{R}^{N \times D_l}$ at layer $l$, the standard GCN propagation rule is written as
 
 \begin{equation}
-H^{(l+1)} = \\sigma\\left( \\tilde{A} H^{(l)} W^{(l)} \\right),
+H^{(l+1)} = \sigma\left( \tilde{A} H^{(l)} W^{(l)} \right),
 \end{equation}
 
-where W^{(l)} is a learnable weight matrix and \\sigma is a non-linear activation such as ReLU.
+where $W^{(l)}$ is a learnable weight matrix and $\sigma$ is a non-linear activation such as ReLU.
 
-GraphSAGE uses neighborhood aggregation functions AGGREGATE to compute node updates. A commonly used variant concatenates a node's current representation with an aggregation of its neighbors:
+GraphSAGE uses neighborhood aggregation functions \text{AGGREGATE} to compute node updates. A commonly used variant concatenates a node's current representation with an aggregation of its neighbors:
 
 \begin{equation}
-h_v^{(k)} = \\text{ReLU}\\left( W^{(k)} \\cdot \\text{CONCAT}\\left(h_v^{(k-1)}, \\text{AGGREGATE}\\left( \\{ h_u^{(k-1)} : u \\in N(v) \\} \\right)\\right) \\right).
+h_v^{(k)} = \text{ReLU}\left( W^{(k)} \cdot \text{CONCAT}\left(h_v^{(k-1)}, \text{AGGREGATE}\left( \{ h_u^{(k-1)} : u \in N(v) \} \right)\right) \right).
 \end{equation}
 
 We adopt these standard formulations and extend them with edge-conditioned features and temporal pooling to better capture flow characteristics.
@@ -111,17 +111,17 @@ The implementation uses Python 3.10+ and the following primary libraries:
 All code is organized under the project folder with the following layout:
 
 \begin{itemize}
-  \item `data/` - synthetic data generation and dataset builders.
-  \item `models/` - PyTorch model definitions, training scripts, and checkpoints.
-  \item `backend/` - FastAPI server, inference helpers, and tests.
-  \item `scripts/` - automation helpers such as `auto_local_runner.py` and conversion utilities.
+  \item \texttt{data/} - synthetic data generation and dataset builders.
+  \item \texttt{models/} - PyTorch model definitions, training scripts, and checkpoints.
+  \item \texttt{backend/} - FastAPI server, inference helpers, and tests.
+  \item \texttt{scripts/} - automation helpers such as \texttt{auto\_local\_runner.py} and conversion utilities.
 \end{itemize}
 
-Reproducibility: the repository pins versions in `backend/requirements.txt` and includes a small script to create a reproducible virtual environment. Training logs, model checkpoints, and evaluation artifacts are written to `out/` for auditability.
+Reproducibility: the repository pins versions in \texttt{backend/requirements.txt} and includes a small script to create a reproducible virtual environment. Training logs, model checkpoints, and evaluation artifacts are written to \texttt{out/} for auditability.
 
 \subsection{Deployment and Serving}
 
-Trained models are exported to ONNX using PyTorch's `torch.onnx.trace` or `torch.onnx.export` utilities with example inputs representative of batched graphs. The FastAPI server loads the ONNX model with `onnxruntime.InferenceSession` and exposes a JSON endpoint `/api/v1/analyze` that accepts serialized flow windows and returns a classification result and an optional explanation (top-k influential nodes by attribution scores).
+Trained models are exported to ONNX using PyTorch's \texttt{torch.onnx.trace} or \texttt{torch.onnx.export} utilities with example inputs representative of batched graphs. The FastAPI server loads the ONNX model with \texttt{onnxruntime.InferenceSession} and exposes a JSON endpoint `/api/v1/analyze` that accepts serialized flow windows and returns a classification result and an optional explanation (top-k influential nodes by attribution scores).
 
 A minimal Dockerfile for production-like deployment is included and contains the following steps:
 
@@ -134,14 +134,13 @@ EXPOSE 8000
 CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 \end{verbatim}
 
-Security in deployment includes running the server behind an authenticated reverse proxy, enforcing TLS, and restricting API keys. The server accepts only batched windows below a configured size to bound inference memory.
+where $W^{(l)}$ is a learnable weight matrix and $\sigma$ is a non-linear activation such as ReLU.
 
-\section{Experimental Setup}
+GraphSAGE uses neighborhood aggregation functions \text{AGGREGATE} to compute node updates. A commonly used variant concatenates a node's current representation with an aggregation of its neighbors:
 
-This section details dataset construction, baseline models, training hyperparameters, and evaluation methodology.
-
-\subsection{Synthetic Dataset}
-
+\begin{equation}
+h_v^{(k)} = \text{ReLU}\left( W^{(k)} \cdot \text{CONCAT}\left(h_v^{(k-1)}, \text{AGGREGATE}\left( \{ h_u^{(k-1)} : u \in N(v) \} \right)\right) \right).
+\end{equation}
 Real labeled malware flow corpora are often restricted, so we construct a synthetic dataset that mimics common malicious behaviors while allowing controlled experiments. The dataset generator produces graphs representing a sliding window of T = 300 seconds. Parameters used in experiments:
 
 \begin{itemize}
@@ -151,7 +150,7 @@ Real labeled malware flow corpora are often restricted, so we construct a synthe
   \item Malicious patterns injected: beaconing sequences, multi-stage downloads, coordinated scanning subgraphs.
 \end{itemize}
 
-Each node has F_n = 16 raw features after preprocessing. Edge features are F_e = 8 dimensional aggregated statistics.
+Each node has $F_n = 16$ raw features after preprocessing. Edge features are $F_e = 8$ dimensional aggregated statistics.
 
 \subsection{Baselines}
 
@@ -179,7 +178,7 @@ The GNN training configuration used in experiments:
   \item Epochs: up to 100 with early stopping after 10 epochs without validation improvement.
 \end{itemize}
 
-Evaluation metrics: accuracy, precision, recall, F1-score, and AUC. We also measure inference latency (milliseconds per graph) using `onnxruntime` on a single CPU.
+Evaluation metrics: accuracy, precision, recall, F1-score, and AUC. We also measure inference latency (milliseconds per graph) using \texttt{onnxruntime} on a single CPU.
 
 \section{Results and Analysis}
 

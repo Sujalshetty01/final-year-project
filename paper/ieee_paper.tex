@@ -52,7 +52,11 @@ Two key challenges arise when using flow graphs in practice: first, graphs are v
 
 \subsection{Notation}
 
-We denote a graph by G = (V, E) with N = |V| nodes. The node feature matrix is X \\in R^{N \\times F} and the adjacency matrix is A \\in {0,1}^{N \\times N} for unweighted edges, or A \\in R^{N \\times N} when edge weights are present. A common preprocessing step constructs the symmetric normalized adjacency \
+We denote a graph by G = (V, E) with N = |V| nodes. The node feature matrix is X \\in R^{N \\times F} and the adjacency matrix is A \\in {0,1}^{N \\times N} for unweighted edges, or A \\in R^{N \\times N} when edge weights are present. A common preprocessing step constructs the symmetric normalized adjacency.
+
+\subsection{Notation}
+
+We denote a graph by $G = (V, E)$ with $N = |V|$ nodes. The node feature matrix is $X \in \mathbb{R}^{N \times F}$ and the adjacency matrix is $A \in \{0,1\}^{N \times N}$ for unweighted edges, or $A \in \mathbb{R}^{N \times N}$ when edge weights are present. A common preprocessing step constructs the symmetric normalized adjacency.
 
 \begin{equation}
 \hat{A} = A + I, \quad \hat{D}_{ii} = \sum_j \hat{A}_{ij},
@@ -61,26 +65,22 @@ We denote a graph by G = (V, E) with N = |V| nodes. The node feature matrix is X
 and the normalized form used in GCN layers is
 
 \begin{equation}
-\tilde{A} = \hat{D}^{-1/2} \hat{A} \hat{D}^{-1/2}.
+	ilde{A} = \hat{D}^{-1/2} \hat{A} \hat{D}^{-1/2}.
 \end{equation}
 
-For node embeddings H^{(l)} \\in R^{N \\times D_l} at layer l, the standard GCN propagation rule is written as
+For node embeddings $H^{(l)} \in \mathbb{R}^{N \times D_l}$ at layer $l$, the standard GCN propagation rule is written as
 
 \begin{equation}
-H^{(l+1)} = \\sigma\\left( \\tilde{A} H^{(l)} W^{(l)} \\right),
+H^{(l+1)} = \sigma\left( \tilde{A} H^{(l)} W^{(l)} \right),
 \end{equation}
 
-where W^{(l)} is a learnable weight matrix and \\sigma is a non-linear activation such as ReLU.
+where $W^{(l)}$ is a learnable weight matrix and $\sigma$ is a non-linear activation such as ReLU.
 
-GraphSAGE uses neighborhood aggregation functions AGGREGATE to compute node updates. A commonly used variant concatenates a node's current representation with an aggregation of its neighbors:
+GraphSAGE uses neighborhood aggregation functions \text{AGGREGATE} to compute node updates. A commonly used variant concatenates a node's current representation with an aggregation of its neighbors:
 
 \begin{equation}
-h_v^{(k)} = \\text{ReLU}\\left( W^{(k)} \\cdot \\text{CONCAT}\\left(h_v^{(k-1)}, \\text{AGGREGATE}\\left( \\{ h_u^{(k-1)} : u \\in N(v) \\} \\right)\\right) \\right).
+h_v^{(k)} = \text{ReLU}\left( W^{(k)} \cdot \text{CONCAT}\left(h_v^{(k-1)}, \text{AGGREGATE}\left( \{ h_u^{(k-1)} : u \in N(v) \} \right)\right) \right).
 \end{equation}
-
-We adopt these standard formulations and extend them with edge-conditioned features and temporal pooling to better capture flow characteristics.
-
-\subsection{Contributions and Organization}
 
 The principal contributions of this paper are the combined data modeling, architectural choices, and practical deployment pipeline that together enable robust malware classification from flow graphs. The detailed contributions are:
 
@@ -91,7 +91,6 @@ The principal contributions of this paper are the combined data modeling, archit
 	\item An empirical evaluation demonstrating performance gains over classical baselines and an analysis of operational constraints.
 \end{itemize}
 
-The next section formulates the problem precisely and details the flow graph construction pipeline.
 The next section formulates the problem precisely and details the flow graph construction pipeline.
 
 \section{Implementation Details}
@@ -114,17 +113,17 @@ The implementation uses Python 3.10+ and the following primary libraries:
 All code is organized under the project folder with the following layout:
 
 \begin{itemize}
-	\item `data/` - synthetic data generation and dataset builders.
-	\item `models/` - PyTorch model definitions, training scripts, and checkpoints.
-	\item `backend/` - FastAPI server, inference helpers, and tests.
-	\item `scripts/` - automation helpers such as `auto_local_runner.py` and conversion utilities.
+	\item \texttt{data/} - synthetic data generation and dataset builders.
+	\item \texttt{models/} - PyTorch model definitions, training scripts, and checkpoints.
+	\item \texttt{backend/} - FastAPI server, inference helpers, and tests.
+	\item \texttt{scripts/} - automation helpers such as \texttt{auto\_local\_runner.py} and conversion utilities.
 \end{itemize}
 
-Reproducibility: the repository pins versions in `backend/requirements.txt` and includes a small script to create a reproducible virtual environment. Training logs, model checkpoints, and evaluation artifacts are written to `out/` for auditability.
+Reproducibility: the repository pins versions in \texttt{backend/requirements.txt} and includes a small script to create a reproducible virtual environment. Training logs, model checkpoints, and evaluation artifacts are written to \texttt{out/} for auditability.
 
 \subsection{Deployment and Serving}
 
-Trained models are exported to ONNX using PyTorch's `torch.onnx.trace` or `torch.onnx.export` utilities with example inputs representative of batched graphs. The FastAPI server loads the ONNX model with `onnxruntime.InferenceSession` and exposes a JSON endpoint `/api/v1/analyze` that accepts serialized flow windows and returns a classification result and an optional explanation (top-k influential nodes by attribution scores).
+Trained models are exported to ONNX using PyTorch's \texttt{torch.onnx.trace} or \texttt{torch.onnx.export} utilities with example inputs representative of batched graphs. The FastAPI server loads the ONNX model with \texttt{onnxruntime.InferenceSession} and exposes a JSON endpoint `/api/v1/analyze` that accepts serialized flow windows and returns a classification result and an optional explanation (top-k influential nodes by attribution scores).
 
 A minimal Dockerfile for production-like deployment is included and contains the following steps:
 
@@ -154,7 +153,7 @@ Real labeled malware flow corpora are often restricted, so we construct a synthe
 	\item Malicious patterns injected: beaconing sequences, multi-stage downloads, coordinated scanning subgraphs.
 \end{itemize}
 
-Each node has F_n = 16 raw features after preprocessing. Edge features are F_e = 8 dimensional aggregated statistics.
+Each node has $F_n = 16$ raw features after preprocessing. Edge features are $F_e = 8$ dimensional aggregated statistics.
 
 \subsection{Baselines}
 
@@ -182,7 +181,7 @@ The GNN training configuration used in experiments:
 	\item Epochs: up to 100 with early stopping after 10 epochs without validation improvement.
 \end{itemize}
 
-Evaluation metrics: accuracy, precision, recall, F1-score, and AUC. We also measure inference latency (milliseconds per graph) using `onnxruntime` on a single CPU.
+Evaluation metrics: accuracy, precision, recall, F1-score, and AUC. We also measure inference latency (milliseconds per graph) using \texttt{onnxruntime} on a single CPU.
 
 \section{Results and Analysis}
 
