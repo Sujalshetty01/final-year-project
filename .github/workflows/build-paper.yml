@@ -1,0 +1,45 @@
+name: Build Paper (LaTeX)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build-paper:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install TeX Live (minimal + extras)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-fonts-extra texlive-xetex texlive-binaries
+
+      - name: Verify pdflatex
+        run: pdflatex --version
+
+      - name: Create output dir
+        run: mkdir -p paper
+
+      - name: Compile paper (1st run)
+        run: |
+          pdflatex -interaction=nonstopmode -output-directory paper paper/ieee_paper_main.tex
+
+      - name: Compile paper (2nd run)
+        run: |
+          pdflatex -interaction=nonstopmode -output-directory paper paper/ieee_paper_main.tex
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-pdf
+          path: paper/ieee_paper_main.pdf
+
+      - name: Upload build log
+        if: failure() || success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-build-log
+          path: paper/build.log

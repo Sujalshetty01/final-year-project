@@ -34,3 +34,21 @@ This project demonstrates an end-to-end GNN pipeline for flow classification, fr
 ## References
 1. Hamilton, W., Ying, Z., & Leskovec, J. (2017). Inductive Representation Learning on Large Graphs. arXiv preprint arXiv:1706.02216.
 2. Kipf, T. N., & Welling, M. (2017). Semi-Supervised Classification with Graph Convolutional Networks. ICLR.
+
+## Project Overview (Concise)
+
+- **Goal:** Build a reproducible, end-to-end graph neural network pipeline for network-flow classification that is easy to train locally and deploy via a lightweight FastAPI backend.
+- **Scope:** Data generation (synthetic flows), preprocessing to graph format, model training (PyTorch), model export (ONNX), evaluation artifacts, and a minimal serving layer with health checks and authentication.
+- **Key Components:**
+	- `data/` — synthetic flow generation and dataset utilities.
+	- `models/` — GNN model definitions and training scripts.
+	- `out/` — evaluation and export artifacts (ONNX, plots, reports).
+	- `backend/` — FastAPI server, auth, and tests including `smoke_test.py`, `auth_test.py`, and `eval_test.py`.
+- **Usage:** Clone the repo, create the `.venv`, install requirements, run `python scripts/auto_local_runner.py` to validate the end-to-end flow locally (installs, starts backend, runs smoke tests, and optionally commits fixes).
+- **Practical Notes:** The repository includes automation that attempts to detect and remediate common environment issues (missing packages, port collisions). For reproducible installs on CPU-only machines, update `backend/requirements.txt` to use CPU-compatible PyTorch wheels or a permissive `torch>=` spec.
+
+## Next Steps (Suggested)
+
+- Update `backend/requirements.txt` to avoid strict GPU-only pins for `torch` when targeting CPU environments.
+- Add a small README section demonstrating how to run training on a short synthetic sample and where to find evaluation outputs.
+- Add CI job to exercise `scripts/auto_local_runner.py` in a containerized environment to catch environment issues early.

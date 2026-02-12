@@ -35,6 +35,21 @@ curl -X POST http://localhost:8000/api/v1/refresh -H "Content-Type: application/
 
 ```bash
 curl http://localhost:8000/api/v1/health
+
+---
+
+## Building the Paper
+
+See [BUILD_PAPER.md](BUILD_PAPER.md) for Windows build instructions and troubleshooting. The repository includes `paper/ieee_paper_main.tex` and a helper script `build.ps1`.
+
+Quick PowerShell command (run from project root):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File build.ps1
+```
+
+If you prefer, open `BUILD_PAPER.md` for detailed prerequisites and troubleshooting steps.
+
 ```
 
 3. Run smoke test locally:
