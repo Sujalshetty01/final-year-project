@@ -2,7 +2,15 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.docs import get_swagger_ui_html
-from typing import List
+from typing import List, Optional
+import os
+import numpy as np
+try:
+    import onnx
+    import onnxruntime as ort
+except Exception:
+    onnx = None
+    ort = None
 
 tags_metadata = [
     {
@@ -37,6 +45,34 @@ app = FastAPI(
 
 # Mount static assets for logo, favicon and custom CSS
 app.mount("/static", StaticFiles(directory="backend/static"), name="static")
+
+# Model loading
+MODEL_PATH = os.environ.get("MODEL_PATH", "out/models/model.onnx")
+model_session: Optional[ort.InferenceSession] = None
+model_input_names: List[str] = []
+model_output_names: List[str] = []
+model_loaded = False
+
+def try_load_model(path: str):
+    global model_session, model_input_names, model_output_names, model_loaded
+    if ort is None:
+        model_loaded = False
+        return
+    if not os.path.exists(path):
+        model_loaded = False
+        return
+    try:
+        sess = ort.InferenceSession(path, providers=['CPUExecutionProvider'])
+        model_session = sess
+        model_input_names = [inp.name for inp in sess.get_inputs()]
+        model_output_names = [out.name for out in sess.get_outputs()]
+        model_loaded = True
+    except Exception:
+        model_loaded = False
+
+
+# Attempt to load model at startup
+try_load_model(MODEL_PATH)
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -85,7 +121,11 @@ async def overridden_openapi():
 
 @app.get("/health", tags=["Health Checks"])
 async def health_check():
-    return JSONResponse({"status": "ok"})
+    return JSONResponse({
+        "status": "ok",
+        "model_loaded": bool(model_loaded),
+        "model_path": MODEL_PATH if model_loaded else None,
+    })
 
 
 @app.get("/metrics", tags=["System Metrics"])
@@ -109,7 +149,50 @@ async def analyze(window: FlowWindow):
     Replace the body of this handler with ONNX runtime inference that loads
     a model from disk (e.g., `out/models/model.onnx`) and returns prediction.
     """
-    # Dummy heuristic: if any flow has bytes > 1e6 mark as suspicious
+    # If an ONNX model is loaded, attempt to construct an input tensor and run inference.
+    if model_loaded and model_session is not None:
+        try:
+            # Best-effort: use first model input and construct a numpy array with shape
+            # replacing dynamic dims with 1. Many exported models include a single float input.
+            inp = model_session.get_inputs()[0]
+            inp_name = inp.name
+            inp_shape = []
+            for d in inp.shape:
+                if isinstance(d, str) or d is None:
+                    inp_shape.append(1)
+                else:
+                    inp_shape.append(max(1, int(d)))
+            # Create a dummy feature vector by summarizing flows: total bytes and count
+            total_bytes = float(sum((f.get("bytes", 0) or 0) for f in window.flows))
+            total_count = float(len(window.flows))
+            # Prepare an input array matching input size (use zeros and place our simple features)
+            x = np.zeros(tuple(inp_shape), dtype=np.float32)
+            # Fill leading elements if possible
+            flat = x.ravel()
+            if flat.size >= 2:
+                flat[0] = total_bytes
+                flat[1] = total_count
+            else:
+                flat[0] = total_bytes
+            feed = {inp_name: x}
+            outputs = model_session.run(None, feed)
+            # Return first output as score
+            out0 = outputs[0]
+            # If output is array-like, summarize
+            if hasattr(out0, 'tolist'):
+                out_val = float(np.asarray(out0).ravel()[0])
+            else:
+                out_val = float(out0)
+            label = "malicious" if out_val > 0.5 else "benign"
+            return {"label": label, "score": out_val, "model": os.path.basename(MODEL_PATH)}
+        except Exception as e:
+            # Fall back to heuristic on inference error
+            suspicious = any((f.get("bytes", 0) or 0) > 1_000_000 for f in window.flows)
+            score = 0.9 if suspicious else 0.1
+            label = "malicious" if suspicious else "benign"
+            return {"label": label, "score": score, "warning": str(e)}
+
+    # Fallback: simple heuristic if model not loaded
     suspicious = any((f.get("bytes", 0) or 0) > 1_000_000 for f in window.flows)
     score = 0.9 if suspicious else 0.1
     label = "malicious" if suspicious else "benign"
