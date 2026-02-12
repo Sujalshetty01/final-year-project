@@ -65,18 +65,34 @@ def install_requirements(strict: bool = True):
     if not req.exists():
         print('No backend/requirements.txt found; skipping pip install')
         return True
-    print('Installing backend requirements...')
-    # capture output to help diagnose failures
-    out_path = ROOT / 'scripts' / 'pip_install_output.log'
-    with open(out_path, 'wb') as out_f:
-        proc = subprocess.run([sys.executable, '-m', 'pip', 'install', '-r', str(req)], stdout=out_f, stderr=subprocess.STDOUT)
-    if proc.returncode != 0:
-        print(f'pip install failed (see {out_path})')
+    print("Installing backend requirements...")
+    pip_log = str(ROOT / 'scripts' / 'pip_install_output.log')
+    with open(pip_log, 'w', encoding='utf-8') as f:
+        r = subprocess.run([sys.executable, '-m', 'pip', 'install', '-r', 'backend/requirements.txt'], stdout=f, stderr=subprocess.STDOUT)
+    if r.returncode != 0:
+        print(f"pip install failed (see {pip_log})")
+        # Attempt targeted installs for missing distributions parsed from pip log
+        missing = parse_missing_packages_from_pip_log(pip_log)
+        if missing:
+            print(f"Detected missing packages: {missing}. Attempting targeted installs...")
+            success = try_targeted_install(missing, pip_log)
+            if success:
+                print("Some targeted installs succeeded; re-running full requirements install...")
+                with open(pip_log, 'a', encoding='utf-8') as f:
+                    r2 = subprocess.run([sys.executable, '-m', 'pip', 'install', '-r', 'backend/requirements.txt'], stdout=f, stderr=subprocess.STDOUT)
+                    if r2.returncode == 0:
+                        print("Re-run pip install succeeded after targeted installs.")
+                    else:
+                        print(f"Re-run pip install still failed (see {pip_log}). Continuing to tests anyway\n")
+            else:
+                print("Targeted installs did not help. Continuing to tests anyway\n")
+        else:
+            print("No specific missing packages detected; continuing to tests anyway\n")
         if strict:
             return False
         else:
             print('Continuing despite pip install failure (non-strict mode)')
-    return proc.returncode == 0
+    return r.returncode == 0
 
 
 def find_pids_on_port(port: int):
@@ -106,6 +122,55 @@ def find_pids_on_port(port: int):
         # lsof not installed on some systems
         pass
     return list(pids)
+
+
+def parse_missing_packages_from_pip_log(logpath: str) -> list:
+    """Parse pip install log for missing distribution/package errors.
+
+    Returns a list of package specifiers that pip reported as missing.
+    """
+    missing = []
+    import re
+    if not os.path.exists(logpath):
+        return missing
+    with open(logpath, 'r', encoding='utf-8', errors='ignore') as f:
+        text = f.read()
+    # Common pip error patterns
+    patterns = [
+        r"Could not find a version that satisfies the requirement\s+([^\s,]+)",
+        r"No matching distribution found for\s+([^\s,]+)",
+        r"ERROR: Could not find a version that satisfies the requirement\s+([^\s,]+)",
+    ]
+    for pat in patterns:
+        for m in re.finditer(pat, text, re.IGNORECASE):
+            pkg = m.group(1).strip()
+            # normalize common extras like pkg==1.2.3,pkg>=1 etc — keep full spec
+            if pkg and pkg not in missing:
+                missing.append(pkg)
+    return missing
+
+
+def try_targeted_install(packages: list, pip_log: str) -> bool:
+    """Attempt to pip install each package individually. Append output to pip_log.
+
+    Returns True if at least one install succeeded (best-effort), False otherwise.
+    """
+    if not packages:
+        return False
+    any_success = False
+    with open(pip_log, 'a', encoding='utf-8', errors='ignore') as f:
+        for pkg in packages:
+            print(f"Attempting targeted install: {pkg}")
+            f.write(f"\n--- Attempting targeted install: {pkg} ---\n")
+            try:
+                r = subprocess.run([sys.executable, '-m', 'pip', 'install', pkg], stdout=f, stderr=subprocess.STDOUT)
+                if r.returncode == 0:
+                    any_success = True
+                else:
+                    f.write(f"Targeted install returned {r.returncode} for {pkg}\n")
+            except Exception as e:
+                f.write(f"Exception during targeted install {pkg}: {e}\n")
+    return any_success
 
 
 def kill_pids(pids):
