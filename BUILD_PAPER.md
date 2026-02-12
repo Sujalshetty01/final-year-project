@@ -69,6 +69,8 @@ CI Build (GitHub Actions)
 
 If you prefer not to install MiKTeX locally, the repository includes a GitHub Actions workflow that builds the paper on `ubuntu-latest` and uploads the generated PDF as an artifact. The workflow file is at `.github/workflows/build-paper.yml` and can be triggered manually from the Actions tab or runs automatically on pushes to `main`/`master`.
 
+Note: the CI workflow now installs the full `texlive-full` distribution on the runner to avoid missing LaTeX package errors during compilation.
+
 To trigger the CI build manually:
 
 1. Open the repository on GitHub.

@@ -12,10 +12,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install TeX Live (minimal + extras)
+      - name: Install TeX Live (full)
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-fonts-extra texlive-xetex texlive-binaries
+          # Install the full TeX Live distribution to avoid missing LaTeX packages
+          sudo apt-get install -y texlive-full
 
       - name: Verify pdflatex
         run: pdflatex --version
