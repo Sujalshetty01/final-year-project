@@ -152,6 +152,20 @@ def create_app() -> FastAPI:
     # evaluation router (protected)
     app.include_router(evaluate.router, prefix="/api/v1", tags=["Evaluation"], dependencies=[Depends(jwt_auth)])
 
+    # Compatibility endpoint: provide root-level /health for older integrations/tests
+    @app.get('/health')
+    async def compatibility_health():
+        try:
+            loaded = bool(model_loader.is_ready()) if hasattr(model_loader, 'is_ready') else False
+        except Exception:
+            loaded = False
+        return JSONResponse({
+            "status": "ok",
+            "model_loaded": loaded,
+            "model_ready": False,
+            "model_path": None
+        })
+
     @app.get('/metrics')
     async def metrics_endpoint():
         data = generate_latest()

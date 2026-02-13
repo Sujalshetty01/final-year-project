@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements
 COPY backend/requirements.txt .
 COPY backend/requirements-ml.txt .
+COPY ../requirements-cpu.txt .
 
 # Install Python dependencies
 RUN pip install --upgrade pip \

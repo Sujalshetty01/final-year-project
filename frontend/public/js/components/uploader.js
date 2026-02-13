@@ -25,7 +25,7 @@ class UploaderComponent {
                     <p><strong>Drag and drop your file here</strong></p>
                     <p>or <strong id="browseLink">click to browse</strong> for a file</p>
                     <p style="font-size: 0.85rem; color: #95a5a6;">
-                        Supported formats: JSON, CSV (max ${CONFIG.MAX_UPLOAD_SIZE_MB}MB)
+                        Supported formats: JSON, CSV (max ${window.CONFIG && window.CONFIG.MAX_UPLOAD_SIZE_MB ? window.CONFIG.MAX_UPLOAD_SIZE_MB : 50}MB)
                     </p>
                 </div>
                 
@@ -173,8 +173,9 @@ class UploaderComponent {
      * Load and parse file
      */
     loadFile(file) {
-        if (file.size > CONFIG.MAX_UPLOAD_SIZE_MB * 1024 * 1024) {
-            UI.showAlert(`File size exceeds ${CONFIG.MAX_UPLOAD_SIZE_MB}MB limit`, 'danger');
+        const maxMb = (window.CONFIG && window.CONFIG.MAX_UPLOAD_SIZE_MB) ? window.CONFIG.MAX_UPLOAD_SIZE_MB : 50;
+        if (file.size > maxMb * 1024 * 1024) {
+            UI.showAlert(`File size exceeds ${maxMb}MB limit`, 'danger');
             return;
         }
         

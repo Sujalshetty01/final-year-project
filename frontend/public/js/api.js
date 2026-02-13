@@ -4,9 +4,9 @@
  */
 
 class MalwareClassificationAPI {
-    constructor(baseURL = CONFIG.API_BASE_URL) {
+    constructor(baseURL = (window.CONFIG && window.CONFIG.API_BASE_URL) || 'http://localhost:8000') {
         this.baseURL = baseURL;
-        this.timeout = CONFIG.API_TIMEOUT;
+        this.timeout = (window.CONFIG && window.CONFIG.API_TIMEOUT) || 60000;
     }
     
     /**
@@ -128,5 +128,43 @@ class MalwareClassificationAPI {
     }
 }
 
-// Create global API instance
-const api = new MalwareClassificationAPI(CONFIG.API_BASE_URL);
+// Create backend API instance and expose a lightweight global `window.api`
+const API_BASE = (window.CONFIG && window.CONFIG.API_BASE_URL) || 'http://localhost:8000';
+const backendApi = new MalwareClassificationAPI(API_BASE);
+
+window.api = {
+    analyze: async function(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`${API_BASE}/analyze`, {
+            method: 'POST',
+            body: formData
+        });
+
+        return response.json();
+    },
+    isAvailable: async function() {
+        return backendApi.isAvailable();
+    },
+    ready: async function() {
+        return backendApi.ready();
+    },
+    health: async function() {
+        return backendApi.health();
+    },
+    getResult: async function(id) {
+        return backendApi.getResult(id);
+    }
+};
+
+// Legacy global alias for scripts that use `api` instead of `window.api`
+try {
+    if (typeof api === 'undefined') {
+        /* eslint-disable no-var */
+        var api = window.api;
+        /* eslint-enable no-var */
+    }
+} catch (e) {
+    // ignore
+}
