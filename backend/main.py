@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.docs import get_swagger_ui_html
-from typing import List, Optional
+from typing import List, Optional, Any
 import os
 import numpy as np
 try:
@@ -48,7 +48,7 @@ app.mount("/static", StaticFiles(directory="backend/static"), name="static")
 
 # Model loading
 MODEL_PATH = os.environ.get("MODEL_PATH", "out/models/model.onnx")
-model_session: Optional[ort.InferenceSession] = None
+model_session: Optional[Any] = None
 model_input_names: List[str] = []
 model_output_names: List[str] = []
 model_loaded = False

@@ -1,7 +1,13 @@
 from fastapi.testclient import TestClient
-import os
+import importlib.util
+from pathlib import Path
 
-from backend.main import app
+# Load the backend app module by file path to avoid package import issues in test
+root = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location("backend_main", str(root / "main.py"))
+backend_main = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(backend_main)
+app = backend_main.app
 
 
 client = TestClient(app)
