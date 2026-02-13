@@ -32,6 +32,7 @@ ENV API_PORT=8000
 ENV DEBUG=false
 ENV CUDA_VISIBLE_DEVICES=""
 ENV PYTHONPATH=/app:$PYTHONPATH
+# Ensures the `app` package is importable inside the container during CI runs
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
