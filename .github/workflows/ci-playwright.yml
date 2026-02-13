@@ -18,8 +18,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install system deps for Playwright
-        run: sudo apt-get update && sudo apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libx11-xcb1 libxcomposite1 libxrandr2 libgbm1 libasound2 libpangocairo-1.0-0 libgtk-3-0
+      - name: Install system deps for Playwright (skip on hosted runner)
+        run: |
+          echo "Skipping apt-get install of system packages on hosted runner."
+          echo "Playwright browser dependencies will be installed by 'python -m playwright install --with-deps' below."
 
       - name: Install Python deps
         run: |
