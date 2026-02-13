@@ -31,6 +31,7 @@ ENV API_HOST=0.0.0.0
 ENV API_PORT=8000
 ENV DEBUG=false
 ENV CUDA_VISIBLE_DEVICES=""
+ENV PYTHONPATH=/app:$PYTHONPATH
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
