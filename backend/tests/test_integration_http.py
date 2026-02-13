@@ -1,7 +1,9 @@
+import os
 import requests
 import time
 
-BASE = "http://localhost:8000"
+# Allow overriding the base URL for tests (useful when port 8000 is occupied)
+BASE = os.environ.get("TEST_BASE", "http://localhost:8000")
 
 
 def test_health_endpoint():

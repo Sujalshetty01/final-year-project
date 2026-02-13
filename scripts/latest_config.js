@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Configuration module
  * Handles API endpoints and environment-based settings
  */
@@ -23,3 +23,4 @@ if (typeof window !== 'undefined') {
         // ignore
     }
 }
+

@@ -51,7 +51,12 @@ if (Test-Path $log) { Remove-Item $log -Force }
 
 Write-Host "Building $tex" -ForegroundColor Cyan
 
-$pdflatexArgs = "-interaction=nonstopmode", "-output-directory=$outdir", $tex
+# Quote paths that may contain spaces to ensure pdflatex sees them as single arguments
+$pdflatexArgs = @(
+    "-interaction=nonstopmode",
+    "-output-directory=`"$outdir`"",
+    "`"$tex`""
+)
 
 $failed = $false
 for ($i = 1; $i -le 2; $i++) {

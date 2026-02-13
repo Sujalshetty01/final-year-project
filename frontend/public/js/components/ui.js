@@ -101,7 +101,8 @@ class UI {
      * Format confidence score as percentage
      */
     static formatConfidence(score) {
-        const percentage = (score * 100).toFixed(CONFIG.CONFIDENCE_DECIMAL_PLACES);
+        const decimals = (window.CONFIG && window.CONFIG.CONFIDENCE_DECIMAL_PLACES) ? window.CONFIG.CONFIDENCE_DECIMAL_PLACES : 2;
+        const percentage = (score * 100).toFixed(decimals);
         return `${percentage}%`;
     }
     

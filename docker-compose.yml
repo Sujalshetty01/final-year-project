@@ -11,7 +11,7 @@ services:
       dockerfile: backend/Dockerfile
     container_name: malware-api
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "${API_PORT:-8001}:8000"
     environment:
       # API Configuration
       API_HOST: "0.0.0.0"
@@ -84,7 +84,7 @@ services:
     ports:
       - "8082:8080"
     environment:
-      REACT_APP_API_URL: "${API_URL:-http://localhost:8000/api/v1}"
+      REACT_APP_API_URL: "${API_URL:-http://localhost:8001/api/v1}"
     
     volumes:
       - ./frontend/public:/app

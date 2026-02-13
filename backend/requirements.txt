@@ -2,7 +2,7 @@
 # This file purposely references the CPU-friendly core requirements to
 # avoid installing GPU-specific PyTorch wheels during local development/CI.
 
--r ..\requirements-cpu.txt
+-r requirements-cpu.txt
 
 # Notes:
 # - Install PyTorch separately depending on your platform.
@@ -19,7 +19,3 @@ PyJWT==2.8.0
 
 # FastAPI stack (kept minimal here; core versions managed by requirements-cpu.txt):
 # fastapi and uvicorn are included in requirements-cpu.txt
-
-# ONNX runtime for exported model inference
-onnx>=1.14.0
-onnxruntime>=1.16.0
