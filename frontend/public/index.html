@@ -16,5 +16,30 @@
     <script src="js/components/uploader.js"></script>
     <script src="js/components/results-display.js"></script>
     <script src="js/app.js"></script>
+    <script>
+    // Client-side health check: shows an alert if backend is unavailable
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            if (window.api && typeof window.api.isAvailable === 'function') {
+                const available = await window.api.isAvailable();
+                if (!available) {
+                    if (typeof UI !== 'undefined' && UI.showAlert) {
+                        UI.showAlert('Backend API is not available. Some features will be disabled.', 'warning');
+                    }
+                    const uploadBtn = document.getElementById('upload-btn');
+                    if (uploadBtn) uploadBtn.disabled = true;
+                }
+            } else {
+                if (typeof UI !== 'undefined' && UI.showAlert) {
+                    UI.showAlert('API client not loaded in browser.', 'danger');
+                }
+            }
+        } catch (e) {
+            if (typeof UI !== 'undefined' && UI.showAlert) {
+                UI.showAlert('Error checking backend: ' + (e && e.message ? e.message : e), 'danger');
+            }
+        }
+    });
+    </script>
 </body>
 </html>
