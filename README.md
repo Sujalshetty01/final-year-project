@@ -1,7 +1,7 @@
 # Malware Classification (review-ready)
 
 <!-- CI badge placeholder: replace OWNER/REPO with your repository -->
-![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/Sujalshetty01/final-year-project/actions/workflows/ci.yml/badge.svg)
 
 Short review-ready project for malware classification (FastAPI + Docker).
 
