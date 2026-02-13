@@ -48,6 +48,8 @@ services:
       # PyTorch Configuration
       CUDA_VISIBLE_DEVICES: "${CUDA_VISIBLE_DEVICES:-}"
       PYTORCH_CUDA_ALLOC_CONF: "${PYTORCH_CUDA_ALLOC_CONF:-}"
+      # Ensure Python can import the `app` package when containers mount volumes
+      PYTHONPATH: "/app"
     
     volumes:
       - ./backend/models:/app/models
