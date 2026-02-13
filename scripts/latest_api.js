@@ -1,4 +1,4 @@
-/**
+﻿/**
  * API module
  * Handles all API communication with the backend
  */
@@ -144,10 +144,6 @@ window.api = {
 
         return response.json();
     },
-    // Analyze flows passed as JSON array (used by uploader.js)
-    analyzeFlows: async function(flows, appName = null, options = {}) {
-        return backendApi.analyzeFlows(flows, appName, options);
-    },
     isAvailable: async function() {
         return backendApi.isAvailable();
     },
@@ -172,3 +168,4 @@ try {
 } catch (e) {
     // ignore
 }
+

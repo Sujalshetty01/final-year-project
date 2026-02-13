@@ -3,8 +3,9 @@ Analysis endpoints for malware classification
 Includes POST /analyze and GET /result/{id} endpoints
 """
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, UploadFile, Form
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from datetime import datetime
 import time
 import uuid
@@ -25,7 +26,7 @@ results_cache: Dict[str, AnalysisResponse] = {}
 
 
 @router.post("/analyze", response_model=AnalysisResponse)
-async def analyze_malware(request: Request, analysis: AnalysisRequest) -> AnalysisResponse:
+async def analyze_malware(request: Request) -> AnalysisResponse:
     """
     Analyze network flows for malware classification
     
@@ -49,14 +50,46 @@ async def analyze_malware(request: Request, analysis: AnalysisRequest) -> Analys
         # Start timer
         start_time = time.time()
         analysis_start = time.time()
-        
+        # Parse request body: support JSON body or multipart upload with a 'file' field
+        analysis = None
+        content_type = request.headers.get('content-type', '')
+        if content_type.startswith('multipart/'):
+            form = await request.form()
+            # If frontend sends a file field, attempt to read and parse it as JSON
+            if 'file' in form:
+                file_field = form['file']
+                try:
+                    # UploadFile-like objects support .read()
+                    if hasattr(file_field, 'read'):
+                        raw = await file_field.read()
+                    else:
+                        raw = str(file_field)
+                    import json as _json
+                    if isinstance(raw, (bytes, bytearray)):
+                        raw = raw.decode('utf-8')
+                    parsed = _json.loads(raw)
+                    # If the uploaded JSON is a raw list of flows, wrap it
+                    if isinstance(parsed, list):
+                        parsed = {"network_flows": parsed}
+                except Exception as e:
+                    raise HTTPException(status_code=400, detail=f"Invalid JSON in uploaded file: {e}")
+                # Build AnalysisRequest from parsed payload
+                analysis = AnalysisRequest.parse_obj(parsed)
+        else:
+            # Assume JSON body
+            try:
+                body = await request.json()
+            except Exception:
+                raise HTTPException(status_code=400, detail="Invalid JSON body")
+            analysis = AnalysisRequest.parse_obj(body)
+
         # Validate input
         if not analysis.network_flows or len(analysis.network_flows) == 0:
             raise HTTPException(
                 status_code=400,
                 detail="network_flows cannot be empty"
             )
-        
+
         if len(analysis.network_flows) > 10000:
             raise HTTPException(
                 status_code=400,
@@ -162,13 +195,20 @@ async def analyze_malware(request: Request, analysis: AnalysisRequest) -> Analys
             risk_score=risk_score
         )
         
-        # Cache result
+        # Prepare JSON-serializable response and add legacy compatibility fields
+        resp_dict = jsonable_encoder(response)
+        # Legacy fields expected by older clients/tests
+        resp_dict.setdefault('label', binary_classification)
+        resp_dict.setdefault('score', binary_confidence)
+
+        # Cache result (store the Pydantic model for internal use)
         results_cache[analysis_id] = response
-        
+
         logger.info(f"Analysis {analysis_id} completed in {total_time:.2f}ms. "
                    f"Result: {binary_classification} ({binary_confidence:.2%})")
-        
-        return response
+
+        # Return JSON response (already encoded)
+        return JSONResponse(content=resp_dict)
         
     except HTTPException:
         raise

@@ -24,9 +24,12 @@ jobs:
       - name: Install Python deps
         run: |
           python -m pip install --upgrade pip
-          pip install playwright
+          # Install dev/test dependencies (Playwright + pytest-playwright)
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; else pip install playwright; fi
+          # Backend requirements (best-effort)
           pip install -r backend/requirements.txt || true
-          playwright install --with-deps
+          # Install browser engines for Playwright
+          python -m playwright install --with-deps
 
       - name: Build and start services
         run: |
