@@ -144,6 +144,10 @@ window.api = {
 
         return response.json();
     },
+    // Accept flows array to match frontend callers
+    analyzeFlows: async function(flows, appName = null, options = {}) {
+        return backendApi.analyzeFlows(flows, appName, options);
+    },
     isAvailable: async function() {
         return backendApi.isAvailable();
     },

@@ -80,26 +80,69 @@ async def lifespan(app: FastAPI):
     global model_loader
     logger.info("Starting Malware Classification API...")
     try:
-        # Initialize auth DB and ensure admin user exists
-        init_db()
+        # Initialize auth DB and ensure admin user exists (with logging)
+        logger.info("Calling init_db()")
+        try:
+            init_db()
+            logger.info("init_db() completed successfully")
+        except Exception:
+            logger.exception("init_db() raised an exception")
+            raise
+
         admin_user = os.environ.get('REVIEW_USER', 'admin')
         admin_pass = os.environ.get('REVIEW_PASS', 'admin')
-        # create admin user if missing
-        if get_user(admin_user) is None:
-            create_user(admin_user, admin_pass)
+        logger.info(f"Checking for admin user '{admin_user}'")
+        try:
+            user_obj = get_user(admin_user)
+        except Exception:
+            logger.exception("get_user() raised an exception")
+            user_obj = None
+
+        if user_obj is None:
+            logger.info(f"Admin user '{admin_user}' not found; creating")
+            try:
+                create_user(admin_user, admin_pass)
+                logger.info(f"Admin user '{admin_user}' created")
+            except Exception:
+                logger.exception("create_user() failed")
+                raise
+        else:
+            logger.info(f"Admin user '{admin_user}' already exists")
+
         # Ensure models exist and start loading in background so startup is fast
         import asyncio
+
         async def _load_models_bg():
+            logger.info("Background model loading task starting")
             try:
                 await asyncio.to_thread(model_loader._ensure_models)
                 logger.info("Background model loading completed")
-            except Exception as e:
-                logger.error(f"Background model loading failed: {e}")
+            except Exception:
+                logger.exception("Background model loading failed")
+                raise
 
         # kick off background model loading and attach task to app state
         app.state.models_loading_task = asyncio.create_task(_load_models_bg())
+
+        # Attach a done callback to log any unhandled exceptions from the task
+        def _models_task_done(task):
+            try:
+                exc = task.exception()
+                if exc is not None:
+                    logger.error(f"Models loading task raised an exception: {exc}")
+                else:
+                    logger.info("Models loading task finished without exception")
+            except asyncio.CancelledError:
+                logger.warning("Models loading task was cancelled")
+            except Exception as _e:
+                logger.error(f"Error inspecting models task result: {_e}")
+
+        try:
+            app.state.models_loading_task.add_done_callback(_models_task_done)
+        except Exception:
+            logger.exception("Could not attach done callback to models task")
     except Exception as e:
-        logger.error(f"Failed to load models: {str(e)}")
+        logger.exception(f"Failed during startup lifespan: {e}")
         raise
     yield
     logger.info("Shutting down Malware Classification API...")
@@ -122,9 +165,11 @@ def create_app() -> FastAPI:
     app.state.revoked_tokens = set()
     
     # CORS Configuration
+    # For local development and demo, allow all origins to avoid CORS issues.
+    # In production this should be restricted to known origins.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins,
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -133,6 +178,20 @@ def create_app() -> FastAPI:
     
     # Compression middleware
     app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+    # Fallback CORS middleware: ensure demo clients receive CORS headers
+    @app.middleware("http")
+    async def add_cors_headers(request: Request, call_next):
+        # Handle preflight
+        if request.method == "OPTIONS":
+            return Response(status_code=200, headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET,POST,OPTIONS,PUT,DELETE",
+                "Access-Control-Allow-Headers": "*"
+            })
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
     
     # Rate limit error handler
     @app.exception_handler(RateLimitExceeded)
@@ -176,6 +235,15 @@ def create_app() -> FastAPI:
         app.state.results_cache = analysis.results_cache
     except Exception:
         app.state.results_cache = {}
+
+    # Explicit OPTIONS handler for API prefixed routes to ensure preflight
+    @app.options('/api/v1/{path:path}')
+    async def api_preflight(path: str, request: Request):
+        return Response(status_code=200, headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS,PUT,DELETE",
+            "Access-Control-Allow-Headers": request.headers.get('access-control-request-headers', '*')
+        })
     
     return app
 

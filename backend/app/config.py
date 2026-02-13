@@ -32,7 +32,9 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:8080",
         "http://localhost",
-        os.getenv("FRONTEND_URL", "http://localhost:3000")
+        os.getenv("FRONTEND_URL", "http://localhost:3000"),
+        "http://localhost:8082",
+        "http://localhost:8083"
     ]
     
     # Rate Limiting
