@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malware Classification System</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+            <div class="header">
+                <h1>🔍 Malware Classification System</h1>
+                <p>Deep Learning-based Malware Detection using Graph Neural Networks</p>
+            </div>
+        
+            <div class="container">
+                <div id="alerts"><div class="alert alert-warning" style="display: none;">
+            <strong>Warning:</strong> API is not ready. Some features may be unavailable.
+            </div><div class="alert alert-warning" style="display: none;">
+            <strong>Warning:</strong> Backend API is not available. Some features will be disabled.
+            </div><div class="alert alert-success" style="display: none;">
+            <strong>Success:</strong> Loaded 15 network flows
+            </div><div class="alert alert-danger" style="display: none;">
+            <strong>Error:</strong> Analysis failed: Failed to fetch
+            </div></div>
+                <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Analyzing network flows...</p>
+            </div>
+                <div id="upload-section" class="card">
+            <h2>📤 Upload Network Flow Data</h2>
+            
+            <div class="upload-section">
+                <!-- Drag and Drop Zone -->
+                <div class="upload-box" id="uploadBox">
+                    <div class="upload-icon">📁</div>
+                    <p><strong>Drag and drop your file here</strong></p>
+                    <p>or <strong id="browseLink">click to browse</strong> for a file</p>
+                    <p style="font-size: 0.85rem; color: #95a5a6;">
+                        Supported formats: JSON, CSV (max 50MB)
+                    </p>
+                </div>
+                
+                <!-- Or Manual Input -->
+                <div>
+                    <p style="text-align: center; color: var(--text-light); margin: 1rem 0;">— OR —</p>
+                </div>
+                
+                <!-- Manual Flow Data Input -->
+                <div class="form-group">
+                    <label for="flowDataInput">Paste Network Flow Data (JSON Format):</label>
+                    <textarea id="flowDataInput" placeholder="[{&quot;src_ip&quot;: &quot;192.168.1.1&quot;, &quot;dst_ip&quot;: &quot;8.8.8.8&quot;, &quot;protocol&quot;: &quot;UDP&quot;, &quot;src_port&quot;: 12345, &quot;dst_port&quot;: 53, &quot;bytes_sent&quot;: 512, &quot;bytes_received&quot;: 1024, &quot;duration&quot;: 0.5}]" style="font-family: monospace; font-size: 0.9rem;"></textarea>
+                </div>
+                
+                <!-- Application Name -->
+                <div class="form-group">
+                    <label for="appName">Application Name (optional):</label>
+                    <input type="text" id="appName" placeholder="e.g., com.example.app" style="">
+                </div>
+                
+                <!-- Options -->
+                <div class="form-group">
+                    <label>Analysis Options:</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="detailedAnalysis" checked="" style="">
+                            <label for="detailedAnalysis">Detailed Analysis</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="useEnsemble" checked="" style="">
+                            <label for="useEnsemble">Compare with Baseline Models</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="button-group">
+                    <button class="btn btn-primary" id="analyzeButton">
+                        🚀 Analyze
+                    </button>
+                    <button class="btn btn-secondary" id="clearButton">
+                        🔄 Clear
+                    </button>
+                </div>
+                
+                <div id="fileInfo" style="margin-top: 1rem; padding: 1rem; background-color: rgb(240, 248, 255); border-radius: 4px; display: block;">
+                    <p><strong>File Selected:</strong> <span id="fileName">sample_flows.json</span></p>
+                    <p><strong>Flows Detected:</strong> <span id="flowCount">15</span></p>
+                </div>
+            </div>
+        </div>
+                <div id="results-section" class="card results-section"></div>
+            </div>
+        
+            <div class="footer">
+                <p>© 2025 Malware Classification System | Final Year Project | BMS Institute of Technology</p>
+            </div>
+        </div>
+    
+    <!-- Scripts loaded in order -->
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/components/ui.js"></script>
+    <script src="js/components/uploader.js"></script>
+    <script src="js/components/results-display.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+    // Client-side health check: shows an alert if backend is unavailable
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            if (window.api && typeof window.api.isAvailable === 'function') {
+                const available = await window.api.isAvailable();
+                if (!available) {
+                    if (typeof UI !== 'undefined' && UI.showAlert) {
+                        UI.showAlert('Backend API is not available. Some features will be disabled.', 'warning');
+                    }
+                    const uploadBtn = document.getElementById('upload-btn');
+                    if (uploadBtn) uploadBtn.disabled = true;
+                }
+            } else {
+                if (typeof UI !== 'undefined' && UI.showAlert) {
+                    UI.showAlert('API client not loaded in browser.', 'danger');
+                }
+            }
+        } catch (e) {
+            if (typeof UI !== 'undefined' && UI.showAlert) {
+                UI.showAlert('Error checking backend: ' + (e && e.message ? e.message : e), 'danger');
+            }
+        }
+    });
+    </script>
+
+
+<input type="file" id="fileInput" accept=".json,.csv,.txt" style="display: none;"></body></html>

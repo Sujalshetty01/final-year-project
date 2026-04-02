@@ -1,0 +1,26 @@
+[
+{
+"Step": 1,
+"Action": "File Upload Attempt",
+"Method": "POST",
+"URL": "http://localhost:3016/upload",
+"Status": 404,
+"Description": "Wrong API endpoint"
+},
+{
+"Step": 2,
+"Action": "Prediction Request",
+"Method": "POST",
+"URL": "http://localhost:8000/predict",
+"Status": 200,
+"Description": "Backend processes file and returns result"
+},
+{
+"Step": 3,
+"Action": "Display Result",
+"Method": "N/A",
+"URL": "Frontend",
+"Status": 200,
+"Description": "Result shown on dashboard UI"
+}
+]

@@ -1,0 +1,19 @@
+# Python version detected: 3.13.5
+# Recommendation: Switch to Python 3.10 or 3.11 for best compatibility with numpy and torch.
+# If you must use Python 3.13, follow these steps:
+
+# 1. Upgrade pip, setuptools, and wheel
+python -m pip install --upgrade pip setuptools wheel
+
+# 2. Install dependencies using prebuilt wheels
+# Use the following command to install numpy, torch, and other dependencies:
+pip install --only-binary=:all: numpy torch torch-geometric
+pip install -r requirements.txt
+
+# If you encounter errors, create a new virtual environment with Python 3.10 or 3.11:
+# python3.10 -m venv venv
+# source venv/bin/activate (Linux/macOS)
+# venv\Scripts\activate (Windows)
+# Then reinstall dependencies.
+
+# These steps will help avoid build failures and compatibility errors.

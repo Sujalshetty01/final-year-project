@@ -1314,5 +1314,5 @@ The production-ready architecture ensures scalability, security, and ease of dep
 
 For questions or issues, contact:
 - **Guide:** Prof. Vinitha V
-- **Institution:** BMS Institute of Technology
+- **Institution:** 
 - **Academic Year:** 2025-2026

@@ -12,45 +12,55 @@ class ResultsDisplayComponent {
      * Display analysis results
      */
     display(result) {
+        // keep most recent result available for inline download fallback
+        try { window._lastAnalysisResult = result; } catch (e) {}
         const container = document.getElementById(this.containerId);
-        
+        // If backend returns a simple shape {label, score, model}, render a compact view
+        if (result && (result.label || result.binary_classification)) {
+            const label = result.binary_classification || result.label;
+            const confidence = result.binary_confidence != null ? result.binary_confidence : (result.score != null ? result.score : 0);
+            const modelName = result.model || (result.gnn_prediction && result.gnn_prediction.model_name) || null;
+
+            let html = `
+                <h2>📊 Analysis Results</h2>
+                <div style="margin-top: 1rem;">
+                    ${UI.createClassificationBadge(label, confidence, modelName)}
+                </div>
+                <div style="margin-top:1rem;" class="card">
+                    <p><strong>Label:</strong> ${label}</p>
+                    <p><strong>Confidence:</strong> ${UI.formatConfidence(confidence)}</p>
+                    ${modelName ? `<p><strong>Model:</strong> ${modelName}</p>` : ''}
+                    <p style="color:var(--text-light); margin-top:0.5rem;">Results may be from the heuristic or the loaded model.</p>
+                </div>
+            `;
+
+            // Add a Download button for compact results (fallback when no analysis_id available)
+            html += `
+                <div style="margin-top:1rem;" class="button-group">
+                    <button class="btn btn-primary" onclick="downloadInline()">💾 Download Report</button>
+                </div>
+            `;
+
+            // Performance metrics fallback when available
+            if (result.inference_time_ms || result.feature_extraction_time_ms) {
+                html += this._createPerformanceMetricsSection(result);
+            }
+
+            container.innerHTML = html;
+            return;
+        }
+
+        // Existing rich result format
         let html = `
             <h2>📊 Analysis Results</h2>
             
             <div style="background-color: #f9f9f9; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
-                <p><strong>Analysis ID:</strong> <code>${result.analysis_id}</code></p>
-                <p><strong>Analyzed At:</strong> ${UI.formatTimestamp(result.timestamp)}</p>
+                <p><strong>Analysis ID:</strong> <code>${result.analysis_id || 'N/A'}</code></p>
+                <p><strong>Analyzed At:</strong> ${result.timestamp ? UI.formatTimestamp(result.timestamp) : 'N/A'}</p>
                 ${result.app_name ? `<p><strong>Application:</strong> ${result.app_name}</p>` : ''}
-                <p><strong>Network Flows:</strong> ${result.num_flows_analyzed}</p>
+                <p><strong>Network Flows:</strong> ${result.num_flows_analyzed || (result.num_flows || 'N/A')}</p>
             </div>
         `;
-        
-        // Classification badge
-        html += UI.createClassificationBadge(
-            result.binary_classification,
-            result.binary_confidence
-        );
-        
-        // GNN Prediction
-        if (result.gnn_prediction) {
-            html += this._createPredictionCard(result.gnn_prediction);
-        }
-        
-        // Risk Score
-        html += this._createRiskScoreSection(result.risk_score);
-        
-        // Graph Features
-        if (result.graph_features) {
-            html += this._createGraphFeaturesSection(result.graph_features);
-        }
-        
-        // Baseline Predictions
-        if (result.baseline_predictions && result.baseline_predictions.length > 0) {
-            html += this._createBaselinePredictionsSection(result.baseline_predictions);
-        }
-        
-        // Performance Metrics
-        html += this._createPerformanceMetricsSection(result);
         
         // Action Buttons
         html += `
@@ -254,4 +264,27 @@ function downloadResults(analysisId) {
     }).catch(error => {
         UI.showAlert(`Failed to download report: ${error.message}`, 'danger');
     });
+}
+
+/**
+ * Download the most recently displayed result (fallback for compact responses)
+ */
+function downloadInline() {
+    try {
+        const result = window._lastAnalysisResult;
+        if (!result) throw new Error('No result available to download');
+        const json = JSON.stringify(result, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const name = result.analysis_id ? result.analysis_id : 'inline';
+        a.download = `malware-classification-report-${name}.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (error) {
+        UI.showAlert(`Failed to download report: ${error.message}`, 'danger');
+    }
 }

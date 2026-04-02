@@ -1,0 +1,59 @@
+body[data-theme="dark"] {
+  background: #181a1b !important;
+  color: #e0e0e0 !important;
+}
+
+body[data-theme="light"] {
+  background: #f5f5f5 !important;
+  color: #222 !important;
+}
+
+.app-container[data-theme="dark"] {
+  background: #181a1b !important;
+  color: #e0e0e0 !important;
+}
+
+.app-container[data-theme="light"] {
+  background: #fff !important;
+  color: #222 !important;
+}
+
+.main-content[data-theme="dark"] {
+  background: #23272f !important;
+  color: #e0e0e0 !important;
+}
+
+.main-content[data-theme="light"] {
+  background: #f5f5f5 !important;
+  color: #222 !important;
+}
+
+.sidebar[data-theme="dark"] {
+  background: #20232a;
+  color: #fff;
+}
+
+.sidebar[data-theme="light"] {
+  background: #f0f0f0;
+  color: #222;
+}
+
+.sidebar a[data-theme="dark"] {
+  color: #b0bec5;
+}
+
+.sidebar a[data-theme="light"] {
+  color: #333;
+}
+
+.sidebar a.active[data-theme="dark"], .sidebar a:hover[data-theme="dark"] {
+  background: #282c34;
+  color: #90caf9;
+  border-left: 4px solid #90caf9;
+}
+
+.sidebar a.active[data-theme="light"], .sidebar a:hover[data-theme="light"] {
+  background: #e3eafc;
+  color: #1976d2;
+  border-left: 4px solid #1976d2;
+}

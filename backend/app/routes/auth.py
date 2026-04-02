@@ -5,7 +5,7 @@ from pydantic import BaseModel
 import os
 import jwt
 import time
-from app import auth_db
+from backend.app import auth_db
 from datetime import datetime, timedelta
 import uuid
 import logging

@@ -110,21 +110,26 @@ class UploaderComponent {
         document.body.appendChild(fileInput);
         
         // Browse button click
-        browseLink.addEventListener('click', () => fileInput.click());
+            // Attach listeners only if elements exist
+            if (browseLink) browseLink.addEventListener('click', () => fileInput.click());
         
         // File input change
-        fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+            if (fileInput) fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         
         // Drag and drop
-        uploadBox.addEventListener('dragover', (e) => this.handleDragOver(e));
-        uploadBox.addEventListener('dragleave', (e) => this.handleDragLeave(e));
-        uploadBox.addEventListener('drop', (e) => this.handleDrop(e));
+            if (uploadBox) {
+                uploadBox.addEventListener('dragover', (e) => this.handleDragOver(e));
+                uploadBox.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+                uploadBox.addEventListener('drop', (e) => this.handleDrop(e));
+            }
         
         // Analyze button
-        document.getElementById('analyzeButton').addEventListener('click', () => this.analyze());
+            const analyzeBtn = document.getElementById('analyzeButton');
+            if (analyzeBtn) analyzeBtn.addEventListener('click', () => this.analyze());
         
         // Clear button
-        document.getElementById('clearButton').addEventListener('click', () => this.clear());
+            const clearBtn = document.getElementById('clearButton');
+            if (clearBtn) clearBtn.addEventListener('click', () => this.clear());
     }
     
     /**
@@ -261,7 +266,25 @@ class UploaderComponent {
             if (!Array.isArray(flows)) {
                 flows = [flows];
             }
-            return flows;
+            // Normalize common field names so backend heuristic and model receive consistent keys
+            const normalized = flows.map(f => {
+                const obj = Object.assign({}, f);
+                // bytes
+                if (obj.bytes == null) {
+                    const a = obj.bytes_sent || obj.bytes_sent_total || obj.bytes_sent_count || 0;
+                    const b = obj.bytes_received || obj.bytes_recv || 0;
+                    obj.bytes = (Number(a) || 0) + (Number(b) || 0);
+                }
+                // duration
+                if (obj.duration == null) {
+                    obj.duration = obj.flow_duration || obj.time_ms || 0;
+                }
+                // ports
+                if (obj.sport == null && obj.src_port != null) obj.sport = obj.src_port;
+                if (obj.dport == null && obj.dst_port != null) obj.dport = obj.dst_port;
+                return obj;
+            });
+            return normalized;
         } catch (error) {
             throw new Error(`Invalid JSON format: ${error.message}`);
         }

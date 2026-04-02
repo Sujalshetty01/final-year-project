@@ -7,8 +7,9 @@
 // This file is intentionally simple so it can be loaded directly in the browser
 // without any bundler or Node.js-specific globals.
 window.CONFIG = {
-    // Point to the running backend API (uses port 8001 to avoid local conflicts)
-    API_BASE_URL: 'http://localhost:8001/api/v1'
+    // Point to the running backend API (now uses port 8000 to match backend)
+    // Note: API routes are prefixed with /api/v1 by the backend; keep base URL to the host + port
+    API_BASE_URL: 'http://localhost:8000'
 };
 
 // Provide a legacy global alias for scripts that reference `CONFIG` directly

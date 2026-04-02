@@ -10,8 +10,8 @@ from torch_geometric.loader import DataLoader
 from torch import nn
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, roc_auc_score
 
-from app.training.dataset import load_dataset
-from app.model_registry import save_metadata
+from backend.app.training.dataset import load_dataset
+from backend.app.model_registry import save_metadata
 
 MODELS_DIR = os.path.join(os.path.dirname(__file__), '../../models')
 os.makedirs(MODELS_DIR, exist_ok=True)

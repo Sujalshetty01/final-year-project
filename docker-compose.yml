@@ -19,7 +19,7 @@ services:
       DEBUG: "${DEBUG:-false}"
       
       # CORS Configuration
-      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:8080}"
+      FRONTEND_URL: "http://localhost:8080"
       
       # Model Configuration
       MODEL_DIR: "${MODEL_DIR:-./models}"

@@ -15,21 +15,114 @@ class MalwareClassificationApp {
     async init() {
         try {
             console.log('Initializing Malware Classification App...');
-            
             // Render main UI
             this.renderMainUI();
-            
+
+            // Add loading spinner
+            const app = document.getElementById('app');
+            app.insertAdjacentHTML('beforeend', '<div id="loading" class="loading"><div class="spinner"></div><div>Loading...</div></div>');
+
+            // Inject modals into DOM (calibration + settings)
+            app.insertAdjacentHTML('beforeend', UI.createCalibrationModal());
+            app.insertAdjacentHTML('beforeend', UI.createSettingsModal());
+
+            // Show loading spinner
+            document.getElementById('loading').classList.add('active');
+
             // Check API availability
             await this.checkAPIAvailability();
-            
+
+            // Fetch model info and render status in header
+            try {
+                const info = await api.modelInfo();
+                UI.renderModelStatus(info);
+            } catch (e) {
+                UI.showAlert('Could not fetch model info: ' + e.message, 'warning');
+            }
+
+            // Hide loading spinner
+            document.getElementById('loading').classList.remove('active');
+
+            // Initialize header toolbar wiring (toggle + modal)
+            try {
+                const toggle = document.getElementById('force-heuristic-toggle');
+                const calibBtn = document.getElementById('calib-open-btn');
+                const modal = document.getElementById('calibration-modal');
+                const close = document.getElementById('calib-close');
+                const calibBody = document.getElementById('calib-body');
+
+                // restore stored toggle value
+                const stored = window.localStorage.getItem('force_heuristic');
+                if (stored === 'true') toggle.checked = true;
+
+                toggle.addEventListener('change', () => {
+                    window.localStorage.setItem('force_heuristic', toggle.checked ? 'true' : 'false');
+                    UI.showAlert(`Force heuristic is now ${toggle.checked ? 'ON' : 'OFF'}`, 'info');
+                });
+
+                calibBtn.addEventListener('click', async () => {
+                    try {
+                        const info = await api.modelInfo();
+                        calibBody.innerHTML = `<pre style="white-space:pre-wrap">${JSON.stringify(info, null, 2)}</pre>`;
+                    } catch (e) {
+                        calibBody.innerHTML = `<div style="color:var(--danger-color);">Failed to fetch calibration: ${e.message}</div>`;
+                    }
+                    modal.style.display = 'block';
+                });
+
+                close.addEventListener('click', () => { modal.style.display = 'none'; });
+                window.addEventListener('click', (ev) => { if (ev.target === modal) modal.style.display = 'none'; });
+
+                // Settings modal wiring
+                const settingsBtn = document.getElementById('settings-open-btn');
+                const settingsModal = document.getElementById('settings-modal');
+                const settingsClose = document.getElementById('settings-close');
+                const settingsSave = document.getElementById('settings-save-btn');
+                const apiBaseInput = document.getElementById('api-base-input');
+                const apiFallbacksInput = document.getElementById('api-fallbacks-input');
+
+                // Populate inputs from localStorage if present
+                try {
+                    const storedBase = window.localStorage.getItem('api_base_url');
+                    const storedFallbacks = window.localStorage.getItem('api_fallbacks');
+                    if (storedBase) apiBaseInput.value = storedBase;
+                    if (storedFallbacks) apiFallbacksInput.value = storedFallbacks;
+                } catch (e) {}
+
+                settingsBtn.addEventListener('click', () => { settingsModal.style.display = 'block'; });
+                settingsClose.addEventListener('click', () => { settingsModal.style.display = 'none'; });
+                window.addEventListener('click', (ev) => { if (ev.target === settingsModal) settingsModal.style.display = 'none'; });
+
+                settingsSave.addEventListener('click', () => {
+                    const base = apiBaseInput.value.trim();
+                    const fall = apiFallbacksInput.value.trim();
+                    try {
+                        if (base) {
+                            window.localStorage.setItem('api_base_url', base);
+                            api.setApiBase(base);
+                        }
+                        if (fall) {
+                            window.localStorage.setItem('api_fallbacks', fall);
+                            api.setApiFallbacks(fall);
+                        }
+                        UI.showAlert('Settings saved. API endpoints updated.', 'success');
+                        settingsModal.style.display = 'none';
+                    } catch (e) {
+                        UI.showAlert('Failed to save settings: ' + e.message, 'danger');
+                    }
+                });
+            } catch (e) {
+                UI.showAlert('Header toolbar wiring failed: ' + e.message, 'danger');
+            }
+
             // Initialize components
             this.uploader = new UploaderComponent();
             this.uploader.render();
-            
+
             this.isReady = true;
             console.log('Application initialized successfully');
-            
         } catch (error) {
+            document.getElementById('loading').classList.remove('active');
             console.error('Initialization error:', error);
             this.showInitializationError(error);
         }
@@ -49,19 +142,13 @@ class MalwareClassificationApp {
     async checkAPIAvailability() {
         try {
             const isAvailable = await api.isAvailable();
-            
             if (!isAvailable) {
-                UI.showAlert(
-                    'API is not ready. Some features may be unavailable.',
-                    'warning'
-                );
+                UI.showLoading('Waiting for backend to start...');
+                // Do not show warning, just show loading state
             }
         } catch (error) {
-            console.warn('Could not verify API availability:', error);
-            UI.showAlert(
-                'Could not connect to backend. Please check if the API server is running.',
-                'warning'
-            );
+            // Do not show warning if backend is still starting
+            UI.showLoading('Waiting for backend to start...');
         }
     }
     

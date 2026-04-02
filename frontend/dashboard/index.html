@@ -1,0 +1,50 @@
+<!-- dashboard/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GNN Prediction Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar" aria-label="Main navigation">
+        <div class="navbar-logo">
+            <img src="../assets/logo_placeholder.png" alt="Project Logo" height="40" style="vertical-align:middle;">
+            <span class="navbar-title">GNN Dashboard</span>
+        </div>
+        <ul class="navbar-links">
+            <li><a href="#" aria-current="page">Home</a></li>
+            <li><a href="../public/index.html">Demo</a></li>
+            <li><a href="../../docs/USAGE.md">Usage</a></li>
+        </ul>
+    </nav>
+    <div class="container">
+        <h1>Graph Neural Network Prediction</h1>
+        <form id="graph-form" aria-label="Prediction form">
+            <label for="node-features">Node Features (JSON):</label>
+            <textarea id="node-features" rows="4" cols="50" required placeholder='[[0.1,0.2],[0.3,0.4]]' aria-required="true"></textarea>
+            <label for="edge-index">Edge Index (JSON):</label>
+            <textarea id="edge-index" rows="4" cols="50" required placeholder='[[0,1],[1,0]]' aria-required="true"></textarea>
+            <div class="form-actions">
+                <button type="submit">Predict</button>
+                <button type="button" id="demo-btn" aria-label="Load sample data">Demo Data</button>
+            </div>
+        </form>
+        <div id="loading" style="display:none;">Loading...</div>
+        <div id="prediction-summary" style="display:none; margin-top:20px;">
+            <h2>Prediction Result</h2>
+            <div id="predicted-class" style="font-size:1.3em; font-weight:bold;"></div>
+            <div id="confidence-bar" style="margin-top:10px; height:24px; background:#eee; border-radius:12px; overflow:hidden;">
+                <div id="confidence-fill" style="height:100%; width:0%; background:linear-gradient(90deg,#28a745,#007bff); transition:width 0.5s;"></div>
+            </div>
+            <div id="confidence-label" style="margin-top:6px; color:#007bff;"></div>
+        </div>
+        <div id="result"></div>
+        <canvas id="predictionChart" style="display:none; margin-top:20px;" height="100"></canvas>
+        <div id="error" style="color:red;"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>

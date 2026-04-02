@@ -41,23 +41,27 @@ function setExplain(summary, importances){
 }
 
 async function analyze() {
-  // Prototype: call /api/v1/analyze or use sample data
-  try{
-    const res = await fetch(API_BASE + '/api/v1/analyze', {method:'POST',headers:{'Content-Type':'application/json'}, body:JSON.stringify({sample:document.getElementById('sampleId').value||'demo'})});
+  // Call GNN endpoint
+  try {
+    // Example: features, edges, node_count
+    const features = [[0.1,0.2],[0.3,0.4]]; // Replace with actual input
+    const edges = [[0,1],[1,0]];
+    const node_count = features.length;
+    const res = await fetch(API_BASE + '/api/gnn/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ features, edges, node_count })
+    });
     const j = await res.json();
-    // Expect shape similar to model_loader.predict output
-    const gnn = j.gnn_prediction || {confidence:0.5, predicted_label:'benign'};
-    const baseline = j.baseline_predictions || {RandomForest:{confidence:0.5,predicted_label:'benign'}};
-    setConfidence(gnn.confidence || 0.5, 1-(gnn.confidence||0.5));
-    setRisk(gnn.confidence || 0.5);
-    setMetrics(j.graph_features || {});
-    setComparison([ {model:'GNN', predicted_label:gnn.predicted_label, confidence:gnn.confidence||0.5}, {model:'Baseline', predicted_label: Object.values(baseline)[0].predicted_label, confidence:Object.values(baseline)[0].confidence} ]);
-    setExplain(j.explanation || 'Top graph features indicate ...', j.feature_importances || []);
-    // store for report
+    setConfidence(j.confidence || 0.5, 1-(j.confidence||0.5));
+    setRisk(j.confidence || 0.5);
+    setMetrics({num_nodes: node_count, num_edges: edges.length});
+    setComparison([ {model:'GNN', predicted_label:j.predicted_class, confidence:j.confidence||0.5} ]);
+    setExplain('Prediction explanation not available.', []);
     window.__last_analysis = j;
-  }catch(e){
+  } catch(e) {
     console.error(e);
-    alert('Analysis failed. If backend not running, this prototype still demonstrates UI.')
+    alert('Analysis failed. If backend not running, this prototype still demonstrates UI.');
   }
 }
 

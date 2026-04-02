@@ -11,7 +11,7 @@ import uuid
 import logging
 from typing import Dict, Any
 
-from app.models.schemas import (
+from backend.app.models.schemas import (
     AnalysisRequest, AnalysisResponse, PredictionResult,
     GraphFeatures, ErrorResponse
 )
@@ -23,6 +23,31 @@ router = APIRouter()
 # In-memory result storage (in production, use database)
 results_cache: Dict[str, AnalysisResponse] = {}
 
+@router.post("/predict")
+async def predict(request: Request, payload: dict) -> dict:
+    """
+    Predict malware class using GNN model
+    POST /api/v1/predict
+    """
+    model_loader = request.app.state.model_loader
+    if model_loader is None or not model_loader.models_loaded:
+        raise HTTPException(status_code=503, detail="Models not loaded. Service not ready for inference.")
+    features = payload.get("features", [])
+    edges = payload.get("edges", [])
+    node_count = payload.get("node_count", 0)
+    result = model_loader.predict_gnn(features, edges, node_count)
+    return result
+
+@router.get("/model-info")
+async def model_info(request: Request) -> dict:
+    """
+    Get model info and calibration
+    GET /api/v1/model-info
+    """
+    model_loader = request.app.state.model_loader
+    if model_loader is None:
+        return {"model_loaded": False}
+    return model_loader.get_info() if hasattr(model_loader, "get_info") else {"model_loaded": model_loader.models_loaded}
 
 @router.post("/analyze", response_model=AnalysisResponse)
 async def analyze_malware(request: Request, analysis: AnalysisRequest) -> AnalysisResponse:
