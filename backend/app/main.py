@@ -14,12 +14,12 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
 
-from backend.app.routes import analysis, health
-from backend.app.routes import debug
-from backend.app.routes import evaluate
-from backend.app.model_loader import ModelLoader
-from backend.app.auth_db import init_db, create_user, get_user
-from backend.app.config import get_settings
+from app.routes import analysis, health
+from app.routes import debug
+from app.routes import evaluate
+from app.model_loader import ModelLoader
+from app.auth_db import init_db, create_user, get_user
+from app.config import get_settings
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from fastapi import Response, Request
 import jwt
@@ -158,6 +158,10 @@ def create_app() -> FastAPI:
         version="1.0.0",
         lifespan=lifespan
     )
+
+    @app.get("/")
+    async def root():
+        return {"message": "Malware Classification API is running"}
     
     # Add state for model loader
     app.state.model_loader = model_loader
@@ -205,7 +209,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix="/api/v1", tags=["Health"])
     app.include_router(analysis.router, prefix="/api/v1", tags=["Analysis"])
     # auth router (login)
-    from backend.app.routes import auth
+    from app.routes import auth
     app.include_router(auth.router, prefix="/api/v1", tags=["Auth"])
     app.include_router(debug.router, prefix="/api/v1", tags=["Debug"]) 
     # evaluation router (protected)

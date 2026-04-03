@@ -5,7 +5,7 @@ Includes /health and /ready endpoints for monitoring
 
 from fastapi import APIRouter, Request
 from datetime import datetime
-from backend.app.models.schemas import HealthResponse, ReadyResponse
+from app.models.schemas import HealthResponse, ReadyResponse
 
 router = APIRouter()
 

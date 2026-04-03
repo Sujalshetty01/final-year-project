@@ -1,8 +1,17 @@
+# Configuration management
+pydantic-settings==2.2.1
+# ML dependencies
+scikit-learn==1.4.1.post1
+# Rate limiting
+slowapi==0.1.8
+# Core FastAPI stack
+fastapi==0.110.0
+starlette==0.36.3
+pydantic==2.6.4
 # Backend requirements
 # This file purposely references the CPU-friendly core requirements to
 # avoid installing GPU-specific PyTorch wheels during local development/CI.
 
--r requirements-cpu.txt
 
 # Notes:
 # - Install PyTorch separately depending on your platform.
@@ -16,6 +25,9 @@
 # Optional monitoring/auth libraries (if not covered by requirements-cpu.txt):
 prometheus_client==0.16.0
 PyJWT==2.8.0
+
+# Ensure FastAPI stack is installed
+uvicorn[standard]==0.23.2
 
 # FastAPI stack (kept minimal here; core versions managed by requirements-cpu.txt):
 # fastapi and uvicorn are included in requirements-cpu.txt

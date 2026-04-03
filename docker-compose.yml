@@ -7,59 +7,22 @@ services:
   # Backend API Service
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
     container_name: malware-api
     ports:
-      - "${API_PORT:-8001}:8000"
+      - "8001:8000"
+    env_file:
+      - .env
     environment:
-      # API Configuration
-      API_HOST: "0.0.0.0"
-      API_PORT: "8000"
-      DEBUG: "${DEBUG:-false}"
-      
-      # CORS Configuration
-      FRONTEND_URL: "http://localhost:8080"
-      
-      # Model Configuration
-      MODEL_DIR: "${MODEL_DIR:-./models}"
-      GNN_MODEL_PATH: "${GNN_MODEL_PATH:-./models/gnn_model.pt}"
-      BASELINE_MODEL_DIR: "${BASELINE_MODEL_DIR:-./models/baseline}"
-      
-      # Rate Limiting
-      RATE_LIMIT_ENABLED: "${RATE_LIMIT_ENABLED:-true}"
-      RATE_LIMIT_REQUESTS: "${RATE_LIMIT_REQUESTS:-100}"
-      RATE_LIMIT_WINDOW: "${RATE_LIMIT_WINDOW:-60}"
-      
-      # API Security
-      API_KEY_ENABLED: "${API_KEY_ENABLED:-false}"
-      API_KEY: "${API_KEY:-}"
-      
-      # Inference Configuration
-      INFERENCE_TIMEOUT: "${INFERENCE_TIMEOUT:-60}"
-      BATCH_SIZE: "${BATCH_SIZE:-32}"
-      MAX_CACHE_SIZE: "${MAX_CACHE_SIZE:-1000}"
-      CACHE_TTL_SECONDS: "${CACHE_TTL_SECONDS:-3600}"
-      
-      # Graph Configuration
-      GRAPH_MAX_NODES: "${GRAPH_MAX_NODES:-1000}"
-      GRAPH_TIMEOUT: "${GRAPH_TIMEOUT:-30}"
-      
-      # PyTorch Configuration
-      CUDA_VISIBLE_DEVICES: "${CUDA_VISIBLE_DEVICES:-}"
-      PYTORCH_CUDA_ALLOC_CONF: "${PYTORCH_CUDA_ALLOC_CONF:-}"
-      # Ensure Python can import the `app` package when containers mount volumes
       PYTHONPATH: "/app"
-    
-    volumes:
-      - ./backend/models:/app/models
-      - ./backend/app:/app/app
-    
-    networks:
-      - malware-net
-    
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
-    
     # Resource limits
     deploy:
       resources:
@@ -67,10 +30,8 @@ services:
           memory: 4G
         reservations:
           memory: 2G
-    
     depends_on:
       - healthcheck-init
-    
     logging:
       driver: "json-file"
       options:
@@ -80,25 +41,25 @@ services:
   # Frontend Service
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: malware-frontend
     ports:
-      - "8082:8080"
+      - "8090:8080"
     environment:
       REACT_APP_API_URL: "${API_URL:-http://localhost:8001/api/v1}"
-    
-    volumes:
-      - ./frontend/public:/app
-    
+    # volumes removed to prevent overwriting /app in production
     networks:
       - malware-net
-    
     restart: unless-stopped
-    
     depends_on:
       - backend
-    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     logging:
       driver: "json-file"
       options:

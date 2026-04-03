@@ -11,7 +11,7 @@ import uuid
 import logging
 from typing import Dict, Any
 
-from backend.app.models.schemas import (
+from app.models.schemas import (
     AnalysisRequest, AnalysisResponse, PredictionResult,
     GraphFeatures, ErrorResponse
 )

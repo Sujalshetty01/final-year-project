@@ -1062,9 +1062,10 @@ GRAPH_MAX_NODES=500
 docker stats
 ```
 
+
 #### **5. Frontend Not Loading**
 
-**Problem:** Can't access http://localhost:8080
+**Problem:** Can't access http://localhost:8091
 
 **Solutions:**
 ```bash

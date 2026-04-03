@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 import os
 import sqlite3
-from backend.app.auth_db import DB_PATH, get_user
+from app.auth_db import DB_PATH, get_user
 
 router = APIRouter()
 
