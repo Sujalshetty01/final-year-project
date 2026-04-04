@@ -1,3 +1,12 @@
+from app.rbac import require_role
+import sentry_sdk
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        traces_sample_rate=0.1,
+        environment=os.getenv("ENVIRONMENT", "production"),
+    )
 """
 FastAPI Application for Malware Classification using Graph Neural Networks
 Main entry point for the ML backend service
@@ -28,12 +37,13 @@ import os
 
 settings = get_settings()
 
-# Configure logging
+
+# Configure structured logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format='%(asctime)s %(levelname)s %(name)s: %(message)s'
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("MalwareAPI")
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -168,17 +178,42 @@ def create_app() -> FastAPI:
     app.state.limiter = limiter
     app.state.revoked_tokens = set()
     
+
     # CORS Configuration
-    # For local development and demo, allow all origins to avoid CORS issues.
-    # In production this should be restricted to known origins.
+    allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:8080,http://localhost:3000").split(",")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=allowed_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
         max_age=3600,
     )
+        # Centralized error handler for HTTPException
+        @app.exception_handler(HTTPException)
+        async def http_exception_handler(request: Request, exc: HTTPException):
+            logger.error(f"HTTPException: {exc.detail}")
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={
+                    "error": exc.__class__.__name__,
+                    "message": exc.detail,
+                    "timestamp": datetime.utcnow().isoformat()
+                },
+            )
+
+        # Centralized error handler for generic exceptions
+        @app.exception_handler(Exception)
+        async def generic_exception_handler(request: Request, exc: Exception):
+            logger.error(f"Unhandled Exception: {exc}", exc_info=True)
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": exc.__class__.__name__,
+                    "message": str(exc),
+                    "timestamp": datetime.utcnow().isoformat()
+                },
+            )
     
     # Compression middleware
     app.add_middleware(GZipMiddleware, minimum_size=1000)

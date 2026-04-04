@@ -1,3 +1,7 @@
+# Linting and formatting tools
+flake8
+black
+isort
 # Configuration management
 pydantic-settings==2.2.1
 # ML dependencies

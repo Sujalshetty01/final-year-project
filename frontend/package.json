@@ -7,6 +7,10 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:unit": "react-scripts test --env=jsdom --testPathPattern=unit",
+    "test:integration": "react-scripts test --env=jsdom --testPathPattern=integration",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,md}\"",
     "eject": "react-scripts eject"
   },
   "dependencies": {

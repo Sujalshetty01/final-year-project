@@ -1,0 +1,24 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Malware Classification Monitoring",
+    "panels": [
+      {
+        "type": "graph",
+        "title": "API Health Status",
+        "targets": [
+          { "expr": "up{job='malware-backend'}", "legendFormat": "Backend Health" }
+        ],
+        "datasource": "Prometheus"
+      },
+      {
+        "type": "graph",
+        "title": "Request Rate",
+        "targets": [
+          { "expr": "rate(http_requests_total[1m])", "legendFormat": "Requests/min" }
+        ],
+        "datasource": "Prometheus"
+      }
+    ]
+  }
+}

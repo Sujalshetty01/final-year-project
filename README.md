@@ -1,62 +1,235 @@
-# Malware Classification (review-ready)
+## 🚀 Deployment Steps
 
-<!-- CI badge placeholder: replace OWNER/REPO with your repository -->
-![CI](https://github.com/Sujalshetty01/final-year-project/actions/workflows/ci.yml/badge.svg)
+See DEPLOYMENT.md for full details.
 
-Short review-ready project for malware classification (FastAPI + Docker).
+1. Copy `.env.example` to `.env` and set secrets.
+2. Build and start all services:
+  ```bash
+  docker compose up --build -d
+  ```
+3. Run database migrations:
+  ```bash
+  ./scripts/migrate.sh
+  ```
+4. Access:
+  - Frontend: http://localhost:8090
+  - Backend:  http://localhost:8001
+  - Grafana:  http://localhost:3001 (admin/admin)
+  - Prometheus: http://localhost:9090
 
-Quick start
+## 📊 Monitoring & Observability
 
-1. Build and run the stack:
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3001 (admin/admin)
+- Default dashboard: `grafana-dashboard.json`
+- Backend metrics: `/metrics` endpoint
 
-```bash
-docker-compose up -d --build
-```
+## 🔒 Backup & Recovery
 
-Authentication (JWT)
---------------------
+- Run `./scripts/backup_db.sh` to create a database backup.
+- Restore with `./scripts/restore_db.sh <backup_file.sql>`
+- Schedule via cron for regular backups.
 
-1. Get a token:
+## ✅ Security Checklist
 
-```bash
-curl -X POST http://localhost:8000/api/v1/login -H "Content-Type: application/json" -d '{"username":"admin","password":"admin"}'
-```
+- [x] All secrets in `.env`, not in code
+- [x] HTTPS enforced in production
+- [x] JWT secret set in production
+- [x] CORS restricted in production
+- [x] Dependency vulnerability checks (CI + scripts)
+- [x] RBAC structure in backend
+- [x] Sentry integration ready
 
-2. Use the returned `access_token` in `Authorization: Bearer <token>` for protected endpoints (e.g., `/api/v1/evaluate/summary`).
+# Malware Classification System
 
-3. To refresh an access token:
-
-```bash
-curl -X POST http://localhost:8000/api/v1/refresh -H "Content-Type: application/json" -d '{"refresh_token":"<refresh>"}'
-```
-
-
-2. Health check:
-
-```bash
-curl http://localhost:8000/api/v1/health
+A modern, full-stack malware classification platform leveraging Deep Learning (Graph Neural Networks) with a professional React frontend and robust FastAPI backend. Easily deployable with Docker for seamless development and production.
 
 ---
 
-## Building the Paper
+## 🚀 Features
 
-See [BUILD_PAPER.md](BUILD_PAPER.md) for Windows build instructions and troubleshooting. The repository includes `paper/ieee_paper_main.tex` and a helper script `build.ps1`.
+- **Deep Learning Backend:**
+  - FastAPI-based REST API for malware classification
+  - Graph Neural Network (GNN) model integration
+  - Secure JWT authentication & rate limiting
+  - Health and metrics endpoints for monitoring
 
-Quick PowerShell command (run from project root):
+- **Modern Frontend:**
+  - React + Tailwind CSS (SaaS-style dashboard UI)
+  - Dark mode, responsive layout, and animations
+  - File upload, results visualization (Recharts)
+  - Clean navigation, hero, features, and demo sections
 
-```powershell
-powershell -ExecutionPolicy Bypass -File build.ps1
+- **DevOps & Deployment:**
+  - Dockerized backend and frontend
+  - One-command startup with `docker-compose`
+  - Healthchecks for both services
+  - Production-ready configuration
+
+---
+
+## 🖥️ Screenshots
+
+> _Add screenshots of the dashboard, upload, and results pages here._
+
+---
+
+
+## 🏗️ Architecture Overview
+
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│  Frontend   │ <--> │  Backend    │ <--> │  PostgreSQL │
+│ (React)     │      │ (FastAPI)   │      │  Database   │
+└─────────────┘      └─────────────┘      └─────────────┘
+  │                  │
+  │   Prometheus     │
+  └─────▶ Metrics ◀──┘
 ```
 
-If you prefer, open `BUILD_PAPER.md` for detailed prerequisites and troubleshooting steps.
 
 ```
+major_project/
+├── backend/           # FastAPI backend (app, models, routes, utils)
+├── frontend/          # React frontend (components, pages, assets)
+├── docker-compose.yml # Multi-service orchestration
+├── Dockerfile         # Backend/Frontend Dockerfiles
+└── ...
+```
 
-3. Run smoke test locally:
+---
+
+## ⚡ Quickstart
+
+### 1. Local Development
+
+#### Backend
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # or venv\\Scripts\\activate on Windows
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+#### Frontend
+```bash
+cd frontend
+npm install
+npm start
+```
+- Frontend: http://localhost:3000
+- Backend:  http://localhost:8001
+
+### 2. Docker Compose (Recommended)
 
 ```bash
-python backend/tests/smoke_test.py
+docker compose up --build -d
 ```
+- Frontend: http://localhost:8090
+- Backend:  http://localhost:8001
+
+---
+
+## 🛠️ Environment Variables
+
+See `.env.example` for all required variables. Copy to `.env` and customize as needed.
+
+| Variable              | Description                                 | Default                        |
+|-----------------------|---------------------------------------------|--------------------------------|
+| API_HOST              | Backend host                                | 0.0.0.0                        |
+| API_PORT              | Backend port                                | 8000                           |
+| DEBUG                 | Enable debug mode                           | false                          |
+| FRONTEND_URL          | Frontend URL                                | http://localhost:8080          |
+| REACT_APP_API_URL     | API URL for frontend                        | http://localhost:8000/api/v1    |
+| POSTGRES_DB           | Database name                               | malware_db                     |
+| POSTGRES_USER         | Database user                               | malware_user                   |
+| POSTGRES_PASSWORD     | Database password                           | malware_pass                   |
+| POSTGRES_HOST         | Database host                               | db                             |
+| POSTGRES_PORT         | Database port                               | 5432                           |
+| JWT_SECRET            | JWT secret (set strong value in prod)        | dev-secret                     |
+| REQUIRE_HTTPS         | Enforce HTTPS for JWT                       | false                          |
+| CORS_ALLOWED_ORIGINS  | Allowed CORS origins (comma-separated)       | http://localhost:8080,http://localhost:3000 |
+
+- **API URL:** Set `REACT_APP_API_URL` in frontend `.env` if backend URL changes.
+- **Backend Ports:** Default is 8001 (can be changed in `docker-compose.yml`).
+- **Frontend Ports:** Default is 8090 (can be changed in `docker-compose.yml`).
+
+---
+
+## 🧩 Main Components
+
+### Backend (FastAPI)
+- `main.py` — App entry, routers, health, metrics
+- `routes/` — API endpoints (analysis, auth, health, etc.)
+- `models/` — GNN model code
+- `services/` — Business logic
+- `schemas/` — Pydantic models
+
+### Frontend (React)
+- `AppModern.js` — Main dashboard UI
+- `components/` — Navbar, Hero, Features, Demo, Footer, etc.
+- `index.css` — Tailwind base styles
+- `tailwind.config.js` — Theme and color customization
+
+---
+
+## 🧪 Testing & Validation
+- Backend: `pytest` (see `tests/` folder)
+- Frontend: `npm test`
+
+---
+
+## 🩺 Monitoring & Observability
+
+- `/api/v1/health` — Health check endpoint (returns status, model, cache info)
+- `/metrics` — Prometheus metrics endpoint (for Grafana integration)
+- Structured logging to stdout (Docker-friendly)
+- Error tracking: Sentry integration-ready (add DSN in env and init in backend)
+
+## 🛠️ Troubleshooting
+
+- **Build fails:** Ensure Docker is running and ports 8001/8090/5432 are free.
+- **Database errors:** Check `POSTGRES_*` env variables and db container logs.
+- **CORS issues:** Set `CORS_ALLOWED_ORIGINS` correctly in `.env`.
+- **Frontend not connecting:** Confirm `REACT_APP_API_URL` matches backend URL.
+- **Tests fail:** Run `docker compose up --build` to ensure all services are healthy.
+
+
+```http
+POST /api/v1/analysis
+Authorization: Bearer <JWT>
+Content-Type: multipart/form-data
+
+file=@sample.exe
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+## 🙏 Acknowledgements
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [React](https://react.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Recharts](https://recharts.org/)
+- [Framer Motion](https://www.framer.com/motion/)
+
+---
+
+## 👤 Author
+
+[Sujal Shetty](https://github.com/Sujalshetty01)
+
+---
+
+## 🌐 Repository
+
+[https://github.com/Sujalshetty01/final-year-project](https://github.com/Sujalshetty01/final-year-project)
 
 Notes
 - The `v1.0-first-review` tag exists locally; provide a remote to push the tag.

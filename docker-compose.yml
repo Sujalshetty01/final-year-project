@@ -1,9 +1,30 @@
-# Docker Compose for Malware Classification System
-# Orchestrates backend API, frontend, and supporting services
 
 version: '3.8'
 
 services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - malware-net
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./grafana-dashboard.json:/etc/grafana/provisioning/dashboards/malware-dashboard.json
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - malware-net
+    restart: unless-stopped
   # Backend API Service
   backend:
     build:
@@ -22,7 +43,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
-    restart: unless-stopped
     # Resource limits
     deploy:
       resources:
@@ -31,12 +51,35 @@ services:
         reservations:
           memory: 2G
     depends_on:
-      - healthcheck-init
+      db:
+        condition: service_healthy
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: malware-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-malware_db}
+      POSTGRES_USER: ${POSTGRES_USER:-malware_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-malware_pass}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - malware-net
   
   # Frontend Service
   frontend:
@@ -53,7 +96,8 @@ services:
       - malware-net
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 30s
@@ -66,20 +110,15 @@ services:
         max-size: "10m"
         max-file: "3"
   
-  # Initialization service for health checks
-  healthcheck-init:
-    image: curlimages/curl:latest
-    container_name: healthcheck-init
-    command: echo "Services will be monitored for health"
-    networks:
-      - malware-net
+  # healthcheck-init service removed
 
 # Network definition
 networks:
   malware-net:
     driver: bridge
 
-# Volume definitions
 volumes:
+  pgdata:
+    driver: local
   models:
     driver: local
