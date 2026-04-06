@@ -36,7 +36,6 @@ services:
       - .env
     environment:
       PYTHONPATH: "/app"
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 30s
@@ -59,13 +58,42 @@ services:
         max-size: "10m"
         max-file: "3"
 
+# Frontend Service (moved to top-level)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: malware-frontend
+    ports:
+      - "4100:80"
+    environment:
+      REACT_APP_API_URL: "${API_URL:-http://localhost:8001/api/v1}"
+    # volumes removed to prevent overwriting /app in production
+    networks:
+      - malware-net
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   # PostgreSQL Database
   db:
     image: postgres:15-alpine
     container_name: malware-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-malware_db}
+      POSTGRES_DB: ${POSTGRES_DB:-malware_user}
       POSTGRES_USER: ${POSTGRES_USER:-malware_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-malware_pass}
     ports:
@@ -82,33 +110,7 @@ services:
       - malware-net
   
   # Frontend Service
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: malware-frontend
-    ports:
-      - "8090:8080"
-    environment:
-      REACT_APP_API_URL: "${API_URL:-http://localhost:8001/api/v1}"
-    # volumes removed to prevent overwriting /app in production
-    networks:
-      - malware-net
-    restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+  # (duplicate removed)
   
   # healthcheck-init service removed
 

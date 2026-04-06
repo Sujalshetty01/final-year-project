@@ -27,7 +27,8 @@ class MalwareClassificationApp {
             app.insertAdjacentHTML('beforeend', UI.createSettingsModal());
 
             // Show loading spinner
-            document.getElementById('loading').classList.add('active');
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) loadingEl.classList.add('active');
 
             // Check API availability
             await this.checkAPIAvailability();
@@ -41,7 +42,8 @@ class MalwareClassificationApp {
             }
 
             // Hide loading spinner
-            document.getElementById('loading').classList.remove('active');
+            const loadingEl2 = document.getElementById('loading');
+            if (loadingEl2) loadingEl2.classList.remove('active');
 
             // Initialize header toolbar wiring (toggle + modal)
             try {

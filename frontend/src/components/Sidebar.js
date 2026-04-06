@@ -1,7 +1,18 @@
 import React, { useContext } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { ThemeContext } from '../context/ThemeContext';
-import { Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box, Typography, Divider, useTheme } from '@mui/material';
+import {
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
+  Box,
+  Typography,
+  Divider,
+  useTheme,
+} from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import HistoryIcon from '@mui/icons-material/History';
@@ -9,7 +20,6 @@ import InfoIcon from '@mui/icons-material/Info';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
-
 const navItems = [
   { label: 'Dashboard', to: '/', icon: <DashboardIcon /> },
   { label: 'Upload', to: '/upload', icon: <CloudUploadIcon /> },
@@ -17,7 +27,6 @@ const navItems = [
   { label: 'History', to: '/history', icon: <HistoryIcon /> },
   { label: 'About', to: '/about', icon: <InfoIcon /> },
 ];
-
 const Sidebar = () => {
   const { theme, toggleTheme } = useContext(ThemeContext);
   const muiTheme = useTheme();
@@ -34,11 +43,20 @@ const Sidebar = () => {
         },
       }}
     >
+      {' '}
       <Box display="flex" flexDirection="column" height="100%">
+        {' '}
         <Box p={2} pb={0}>
-          <Typography variant="h6" fontWeight={700} color="primary">Malware Classifier</Typography>
-        </Box>
+          {' '}
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            {' '}
+            <Typography variant="h6" fontWeight={700} color="primary">
+              Malware Classifier
+            </Typography>{' '}
+          </Link>{' '}
+        </Box>{' '}
         <List>
+          {' '}
           {navItems.map((item) => (
             <ListItem
               button
@@ -60,28 +78,39 @@ const Sidebar = () => {
                 },
               }}
             >
-              <ListItemIcon sx={{
-                transition: 'transform 0.2s',
-                '.MuiListItem-root:hover &': { transform: 'scale(1.2)' },
-                '.MuiListItem-root.active &': { transform: 'scale(1.25)' },
-              }}>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.label} />
+              {' '}
+              <ListItemIcon
+                sx={{
+                  transition: 'transform 0.2s',
+                  '.MuiListItem-root:hover &': { transform: 'scale(1.2)' },
+                  '.MuiListItem-root.active &': { transform: 'scale(1.25)' },
+                  cursor: 'pointer',
+                }}
+              >
+                {' '}
+                <Link to={item.to} style={{ color: 'inherit', display: 'flex' }}>
+                  {' '}
+                  {item.icon}{' '}
+                </Link>{' '}
+              </ListItemIcon>{' '}
+              <ListItemText primary={item.label} />{' '}
             </ListItem>
-          ))}
-        </List>
-        <Box flexGrow={1} />
-        <Divider />
+          ))}{' '}
+        </List>{' '}
+        <Box flexGrow={1} /> <Divider />{' '}
         <Box p={2} display="flex" alignItems="center" justifyContent="center">
+          {' '}
           <IconButton onClick={toggleTheme} color="primary">
-            {theme === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
+            {' '}
+            {theme === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}{' '}
+          </IconButton>{' '}
           <Typography ml={1} variant="body2">
-            {theme === 'dark' ? 'Light' : 'Dark'} Mode
-          </Typography>
-        </Box>
-      </Box>
+            {' '}
+            {theme === 'dark' ? 'Light' : 'Dark'} Mode{' '}
+          </Typography>{' '}
+        </Box>{' '}
+      </Box>{' '}
     </Drawer>
   );
 };
-
 export default Sidebar;

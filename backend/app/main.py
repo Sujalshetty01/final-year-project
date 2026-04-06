@@ -1,3 +1,4 @@
+import os
 from app.rbac import require_role
 import sentry_sdk
 SENTRY_DSN = os.getenv("SENTRY_DSN")
@@ -189,31 +190,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
         max_age=3600,
     )
-        # Centralized error handler for HTTPException
-        @app.exception_handler(HTTPException)
-        async def http_exception_handler(request: Request, exc: HTTPException):
-            logger.error(f"HTTPException: {exc.detail}")
-            return JSONResponse(
-                status_code=exc.status_code,
-                content={
-                    "error": exc.__class__.__name__,
-                    "message": exc.detail,
-                    "timestamp": datetime.utcnow().isoformat()
-                },
-            )
 
-        # Centralized error handler for generic exceptions
-        @app.exception_handler(Exception)
-        async def generic_exception_handler(request: Request, exc: Exception):
-            logger.error(f"Unhandled Exception: {exc}", exc_info=True)
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "error": exc.__class__.__name__,
-                    "message": str(exc),
-                    "timestamp": datetime.utcnow().isoformat()
-                },
-            )
     
     # Compression middleware
     app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -228,10 +205,39 @@ def create_app() -> FastAPI:
                 "Access-Control-Allow-Methods": "GET,POST,OPTIONS,PUT,DELETE",
                 "Access-Control-Allow-Headers": "*"
             })
+
+            def register_exception_handlers(app: FastAPI):
+                # Centralized error handler for HTTPException
+                @app.exception_handler(HTTPException)
+                async def http_exception_handler(request: Request, exc: HTTPException):
+                    logger.error(f"HTTPException: {exc.detail}")
+                    return JSONResponse(
+                        status_code=exc.status_code,
+                        content={
+                            "error": exc.__class__.__name__,
+                            "message": exc.detail,
+                            "timestamp": datetime.utcnow().isoformat()
+                        },
+                    )
+
+                # Centralized error handler for generic exceptions
+                @app.exception_handler(Exception)
+                async def generic_exception_handler(request: Request, exc: Exception):
+                    logger.error(f"Unhandled Exception: {exc}", exc_info=True)
+                    return JSONResponse(
+                        status_code=500,
+                        content={
+                            "error": exc.__class__.__name__,
+                            "message": str(exc),
+                            "timestamp": datetime.utcnow().isoformat()
+                        },
+                    )
+
         response = await call_next(request)
         response.headers["Access-Control-Allow-Origin"] = "*"
         return response
     
+
     # Rate limit error handler
     @app.exception_handler(RateLimitExceeded)
     async def rate_limit_handler(request, exc):

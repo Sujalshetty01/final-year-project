@@ -5,3 +5,4 @@ Project Summary — Brief
 - Outputs: ONNX models, evaluation plots, and a FastAPI service for inference under `/api/v1/analyze`.
 - Reproducibility: seed-controlled dataset generation and recommended CPU-friendly `torch` pins for non-GPU environments.
 - Files: see `data/`, `models/`, `backend/`, and `out/` for artifacts.
+cd

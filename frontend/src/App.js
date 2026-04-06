@@ -1,43 +1,48 @@
+
 import React from "react";
-import { Box } from "@mui/material";
-import Sidebar from "./components/Sidebar";
-import TopNavbar from "./components/TopNavbar";
+import { Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Upload from "./pages/Upload";
 import Results from "./pages/Results";
-import History from "./pages/History";
-import About from "./pages/About";
+import Navbar from "./components/Navbar";
+import Sidebar from "./components/Sidebar";
+import Features from "./components/Features";
+import DemoResults from "./components/DemoResults";
+import TestIcon from "./components/TestIcon";
+import Footer from "./components/Footer";
 import { ThemeProvider } from "./context/ThemeContext";
-import { Routes, Route } from "react-router-dom";
-import ErrorBoundary from "./components/ErrorBoundary";
 import "./App.css";
 import "./theme.css";
 
-function App() {
+
+function LandingPage() {
+  // Demo scroll handler
+  const scrollToDemo = () => {
+    document.getElementById("demo-section")?.scrollIntoView({ behavior: "smooth" });
+  };
   return (
-    <ThemeProvider>
-      <ErrorBoundary>
-        <div className="app-container" style={{ display: 'flex', minHeight: '100vh' }}>
-          <Sidebar />
-          <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <TopNavbar />
-            <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8 }}>
-              <noscript style={{ color: "red", background: "white", padding: 20, display: "block" }}>
-                JavaScript is required to run this app.
-              </noscript>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/upload" element={<Upload />} />
-                <Route path="/results/:id" element={<Results />} />
-                <Route path="/history" element={<History />} />
-                <Route path="/about" element={<About />} />
-              </Routes>
-            </Box>
-          </Box>
-        </div>
-      </ErrorBoundary>
-    </ThemeProvider>
+    <div>
+      <Navbar />
+      <Features />
+      <button onClick={scrollToDemo} style={{margin: 24, padding: 12, fontSize: 18}}>Try the Demo</button>
+      <div id="demo-section">
+        <DemoResults />
+      </div>
+      <TestIcon />
+      <Footer />
+    </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <ThemeProvider>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={<><Sidebar /><Dashboard /></>} />
+        <Route path="/upload" element={<><Sidebar /><Upload /></>} />
+        <Route path="/results/:id" element={<><Sidebar /><Results /></>} />
+      </Routes>
+    </ThemeProvider>
+  );
+}

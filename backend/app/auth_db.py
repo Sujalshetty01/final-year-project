@@ -7,7 +7,7 @@ import binascii
 import time
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'auth.db')
+DB_PATH = os.getenv("DB_PATH") or os.path.join(os.path.dirname(__file__), '..', 'auth.db')
 
 
 def _conn():
