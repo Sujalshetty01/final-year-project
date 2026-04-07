@@ -28,7 +28,7 @@ class MalwareClassificationApp {
 
             // Show loading spinner
             const loadingEl = document.getElementById('loading');
-            if (loadingEl) loadingEl.classList.add('active');
+            if (loadingEl && loadingEl.classList) loadingEl.classList.add('active');
 
             // Check API availability
             await this.checkAPIAvailability();
@@ -43,7 +43,7 @@ class MalwareClassificationApp {
 
             // Hide loading spinner
             const loadingEl2 = document.getElementById('loading');
-            if (loadingEl2) loadingEl2.classList.remove('active');
+            if (loadingEl2 && loadingEl2.classList) loadingEl2.classList.remove('active');
 
             // Initialize header toolbar wiring (toggle + modal)
             try {
@@ -55,25 +55,28 @@ class MalwareClassificationApp {
 
                 // restore stored toggle value
                 const stored = window.localStorage.getItem('force_heuristic');
-                if (stored === 'true') toggle.checked = true;
+                                if (toggle && stored === 'true') toggle.checked = true;
 
-                toggle.addEventListener('change', () => {
-                    window.localStorage.setItem('force_heuristic', toggle.checked ? 'true' : 'false');
-                    UI.showAlert(`Force heuristic is now ${toggle.checked ? 'ON' : 'OFF'}`, 'info');
-                });
+                                if (toggle) {
+                                    toggle.addEventListener('change', () => {
+                                            window.localStorage.setItem('force_heuristic', toggle.checked ? 'true' : 'false');
+                                            UI.showAlert(`Force heuristic is now ${toggle.checked ? 'ON' : 'OFF'}`, 'info');
+                                    });
+                                }
 
-                calibBtn.addEventListener('click', async () => {
-                    try {
-                        const info = await api.modelInfo();
-                        calibBody.innerHTML = `<pre style="white-space:pre-wrap">${JSON.stringify(info, null, 2)}</pre>`;
-                    } catch (e) {
-                        calibBody.innerHTML = `<div style="color:var(--danger-color);">Failed to fetch calibration: ${e.message}</div>`;
-                    }
-                    modal.style.display = 'block';
-                });
-
-                close.addEventListener('click', () => { modal.style.display = 'none'; });
-                window.addEventListener('click', (ev) => { if (ev.target === modal) modal.style.display = 'none'; });
+                if (calibBtn && modal && calibBody) {
+                  calibBtn.addEventListener('click', async () => {
+                      try {
+                          const info = await api.modelInfo();
+                          calibBody.innerHTML = `<pre style="white-space:pre-wrap">${JSON.stringify(info, null, 2)}</pre>`;
+                      } catch (e) {
+                          calibBody.innerHTML = `<div style="color:var(--danger-color);">Failed to fetch calibration: ${e.message}</div>`;
+                      }
+                      modal.style.display = 'block';
+                  });
+                  close && close.addEventListener('click', () => { modal.style.display = 'none'; });
+                  window.addEventListener('click', (ev) => { if (ev.target === modal) modal.style.display = 'none'; });
+                }
 
                 // Settings modal wiring
                 const settingsBtn = document.getElementById('settings-open-btn');
@@ -91,11 +94,11 @@ class MalwareClassificationApp {
                     if (storedFallbacks) apiFallbacksInput.value = storedFallbacks;
                 } catch (e) {}
 
-                settingsBtn.addEventListener('click', () => { settingsModal.style.display = 'block'; });
-                settingsClose.addEventListener('click', () => { settingsModal.style.display = 'none'; });
+                if (settingsBtn && settingsModal) settingsBtn.addEventListener('click', () => { settingsModal.style.display = 'block'; });
+                if (settingsClose && settingsModal) settingsClose.addEventListener('click', () => { settingsModal.style.display = 'none'; });
                 window.addEventListener('click', (ev) => { if (ev.target === settingsModal) settingsModal.style.display = 'none'; });
 
-                settingsSave.addEventListener('click', () => {
+                if (settingsSave && apiBaseInput && apiFallbacksInput) settingsSave.addEventListener('click', () => {
                     const base = apiBaseInput.value.trim();
                     const fall = apiFallbacksInput.value.trim();
                     try {
@@ -124,7 +127,8 @@ class MalwareClassificationApp {
             this.isReady = true;
             console.log('Application initialized successfully');
         } catch (error) {
-            document.getElementById('loading').classList.remove('active');
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl && loadingEl.classList) loadingEl.classList.remove('active');
             console.error('Initialization error:', error);
             this.showInitializationError(error);
         }

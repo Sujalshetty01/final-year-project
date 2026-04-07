@@ -1,6 +1,9 @@
 import axios from "axios";
 
-const API_BASE = process.env.REACT_APP_API_URL || "";
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000/api/v1";
+
+// Remove trailing slash if present
+const cleanBase = API_BASE.replace(/\/$/, "");
 
 export const uploadFile = async (file) => {
   console.log('[uploadFile] Called with file:', file);
@@ -30,18 +33,49 @@ export const uploadFile = async (file) => {
   }
   console.log('[uploadFile] Parsed data:', parsedData);
 
+
   // Send to backend as JSON
-  const endpoint = `${API_BASE}/api/v1/analyze`;
+  const endpoint = `${cleanBase}/analyze`;
   console.log('[uploadFile] Posting to:', endpoint);
-  const response = await axios.post(
-    endpoint,
-    { network_flows: parsedData },
-    { headers: { 'Content-Type': 'application/json' } }
-  );
-  console.log('[uploadFile] Response:', response.data);
-  return response.data;
+  try {
+    const response = await axios.post(
+      endpoint,
+      { network_flows: parsedData },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('[uploadFile] API error:', error);
+    alert('Upload failed: ' + (error?.response?.data?.detail || error.message));
+    throw error;
+  }
 };
 
+export const fetchData = async () => {
+  try {
+    const res = await axios.get(`${API_BASE}/some-endpoint`);
+    return res.data;
+  } catch (err) {
+    console.error("API error:", err);
+    throw err;
+  }
+};
+
+// If you need a raw file upload endpoint, use this:
+export const uploadFileRaw = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  try {
+    const res = await axios.post(`${API_BASE}/upload`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  } catch (err) {
+    console.error("Upload error:", err);
+    alert('Upload failed: ' + (err?.response?.data?.detail || err.message));
+    throw err;
+  }
+};
 export const fetchResult = async (id) => {
   const response = await axios.get(`${API_BASE}/results/${id}`);
   return response.data;

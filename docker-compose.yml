@@ -31,7 +31,7 @@ services:
       context: ./backend
     container_name: malware-api
     ports:
-      - "8001:8000"
+      - "8000:8000"
     env_file:
       - .env
     environment:
@@ -67,8 +67,7 @@ services:
     ports:
       - "4100:80"
     environment:
-      REACT_APP_API_URL: "${API_URL:-http://localhost:8001/api/v1}"
-    # volumes removed to prevent overwriting /app in production
+      REACT_APP_API_URL: "http://localhost:8000/api/v1"
     networks:
       - malware-net
     restart: unless-stopped

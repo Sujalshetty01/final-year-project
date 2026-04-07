@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+
 export default function Card({ icon, title, children, ...props }) {
   return (
     <motion.div
@@ -13,10 +14,9 @@ export default function Card({ icon, title, children, ...props }) {
       role="button"
       onKeyPress={(e) => (e.key === 'Enter' || e.key === ' ') && props.onClick && props.onClick(e)}
     >
-      {' '}
-      <div className="text-4xl text-primary mb-2">{icon}</div>{' '}
-      <h3 className="font-semibold text-lg mb-1">{title}</h3>{' '}
-      <div className="text-gray-600 dark:text-gray-300 text-center">{children}</div>{' '}
+      <div className="text-4xl text-primary mb-2">{icon}</div>
+      <h3 className="font-semibold text-lg mb-1">{title}</h3>
+      <div className="text-gray-600 dark:text-gray-300 text-center">{children}</div>
     </motion.div>
   );
 }

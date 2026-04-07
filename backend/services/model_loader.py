@@ -1,5 +1,6 @@
 import torch
 import logging
+import os
 
 class ModelLoader:
     def __init__(self, model_path: str):
@@ -10,8 +11,11 @@ class ModelLoader:
 
     def load(self):
         try:
+            if not os.path.exists(self.model_path):
+                self.logger.error(f"Model file not found: {self.model_path}")
+                self.model = None
+                return
             from model.gnn_model import GCN
-            # Hardcoded for Cora dataset, adjust as needed
             num_node_features = 1433
             num_classes = 7
             model = GCN(num_node_features, num_classes)

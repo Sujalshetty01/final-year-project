@@ -1,6 +1,7 @@
-
-
 import os
+# Ensure project root is in sys.path for absolute imports
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from typing import Optional, Any, List, Dict
 import onnxruntime as ort
 from fastapi.responses import FileResponse
@@ -13,12 +14,44 @@ from backend.services.model_loader import ModelLoader
 from backend.schemas.response import ModelInfoResponse
 import logging
 
+# Enable debug logging
+logging.basicConfig(level=logging.DEBUG)
+
 # Configure logging for the backend
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
 logger = logging.getLogger("BackendMain")
 
 
+
 app = FastAPI(title="Malware Classification API")
+
+# Health check endpoint for /api/v1/health
+@app.get("/api/v1/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "message": "API is healthy"
+    }
+
+
+# Global exception handler for all errors (except 404)
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False,
+            "error": str(exc)
+        },
+    )
+
+# Custom 404 handler
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc):
+    return JSONResponse(
+        status_code=404,
+        content={"error": "HTTPException"}
+    )
 
 # CORS Middleware (production-ready)
 app.add_middleware(
@@ -56,9 +89,14 @@ async def custom_swagger_ui_html(request: Request) -> HTMLResponse:
     return HTMLResponse(content=html.body.decode(), status_code=200)
 
 
+
 # Model loader instance
-model_loader = ModelLoader("models/gnn_model.pt")
-model_loader.load()
+try:
+    model_loader = ModelLoader("models/gnn_model.pt")
+    model_loader.load()
+except Exception as e:
+    logger.error(f"Model loader startup failed: {e}")
+    model_loader = None
 
 
 # Health endpoint
