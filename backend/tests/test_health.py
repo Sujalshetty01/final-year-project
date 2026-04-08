@@ -8,5 +8,6 @@ def test_health_endpoint():
     response = client.get('/api/v1/health')
     assert response.status_code == 200
     data = response.json()
-    assert 'status' in data
-    assert data['status'] in ['healthy', 'degraded']
+    assert 'data' in data
+    assert 'status' in data['data']
+    assert data['data']['status'] in ['healthy', 'degraded']

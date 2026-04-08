@@ -1,9 +1,8 @@
 import axios from "axios";
 
-const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000/api/v1";
 
-// Remove trailing slash if present
-const cleanBase = API_BASE.replace(/\/$/, "");
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000/api/v1";
+const cleanBase = API_BASE_URL.replace(/\/$/, "");
 
 export const uploadFile = async (file) => {
   console.log('[uploadFile] Called with file:', file);
@@ -51,33 +50,12 @@ export const uploadFile = async (file) => {
   }
 };
 
-export const fetchData = async () => {
-  try {
-    const res = await axios.get(`${API_BASE}/some-endpoint`);
-    return res.data;
-  } catch (err) {
-    console.error("API error:", err);
-    throw err;
-  }
-};
 
-// If you need a raw file upload endpoint, use this:
-export const uploadFileRaw = async (file) => {
-  const formData = new FormData();
-  formData.append("file", file);
-  try {
-    const res = await axios.post(`${API_BASE}/upload`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return res.data;
-  } catch (err) {
-    console.error("Upload error:", err);
-    alert('Upload failed: ' + (err?.response?.data?.detail || err.message));
-    throw err;
-  }
-};
+// Removed unused fetchData, uploadFileRaw, fetchHistory, fetchStatus endpoints
+
+
 export const fetchResult = async (id) => {
-  const response = await axios.get(`${API_BASE}/results/${id}`);
+  const response = await axios.get(`${cleanBase}/result/${id}`);
   return response.data;
 };
 

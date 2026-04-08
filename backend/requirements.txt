@@ -23,6 +23,7 @@ pydantic==2.6.4
 # avoid installing GPU-specific PyTorch wheels during local development/CI.
 
 
+
 # Notes:
 # - Install PyTorch separately depending on your platform.
 #   CPU-only example (Windows/Linux):
@@ -31,6 +32,23 @@ pydantic==2.6.4
 #   and use the generated install command to get matching CUDA-enabled wheels.
 # - `torch-geometric` requires a matching PyTorch version and platform-specific wheels;
 #   install it after PyTorch according to https://pytorch-geometric.readthedocs.io/.
+# - onnxruntime and onnx are required for ONNX model inference.
+# - playwright is used for browser-based testing (optional).
+# - matplotlib, reportlab are used for plotting and PDF generation (optional).
+# - alembic is used for database migrations (optional).
+# - locust is used for load testing (optional).
+
+# Additional dependencies (install as needed):
+onnxruntime
+onnx
+requests
+joblib
+pandas
+playwright
+matplotlib
+reportlab
+alembic
+locust
 
 # Optional monitoring/auth libraries (if not covered by requirements-cpu.txt):
 prometheus_client==0.16.0
