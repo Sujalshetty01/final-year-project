@@ -1,5 +1,21 @@
+# Root endpoint: returns API status and useful links
+from fastapi.responses import RedirectResponse
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return {
+        "success": True,
+        "message": "API is running",
+        "docs": "/docs",
+        "health": "/api/v1/health"
+    }
+
+# Optionally, to redirect / to /docs, uncomment below:
+# @app.get("/", include_in_schema=False)
+# async def root():
+#     return RedirectResponse(url="/docs")
 import os
-# Ensure project root is in sys.path for absolute imports
+import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from typing import Optional, Any, List, Dict
@@ -20,8 +36,11 @@ from backend.routes.gnn_routes import router as gnn_router
 from backend.services.model_loader import ModelLoader
 from backend.schemas.response import ModelInfoResponse
 import logging
+from fastapi import FastAPI, Request
+from starlette.middleware.base import BaseHTTPMiddleware
 
-# Enable debug logging
+# Define app before using it
+app = FastAPI(title="Malware Classification API")
 logging.basicConfig(level=logging.DEBUG)
 
 # Configure logging for the backend
@@ -33,6 +52,7 @@ logger = logging.getLogger("BackendMain")
 
 # Middleware for logging all requests and responses
 class LoggingMiddleware(BaseHTTPMiddleware):
+
     async def dispatch(self, request, call_next):
         logger.info(f"Request: {request.method} {request.url}")
         try:
@@ -62,36 +82,57 @@ def health_check():
 
 
 
-# Global exception handler for all errors (except 404)
+
+# Improved error handling for HTTPException and 404
+from fastapi.exceptions import RequestValidationError, HTTPException as FastAPIHTTPException
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+@app.exception_handler(FastAPIHTTPException)
+async def http_exception_handler(request: Request, exc: FastAPIHTTPException):
+    logger.warning(f"HTTPException: {exc.detail} (status {exc.status_code}) at {request.url}")
+    # 404: Not Found
+    if exc.status_code == 404:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": "Not Found"}
+        )
+    # Other HTTP errors
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"success": False, "error": exc.detail}
+    )
+
+@app.exception_handler(StarletteHTTPException)
+async def starlette_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    logger.warning(f"StarletteHTTPException: {exc.detail} (status {exc.status_code}) at {request.url}")
+    if exc.status_code == 404:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": "Not Found"}
+        )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"success": False, "error": exc.detail}
+    )
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={
-            "success": False,
-            "error": str(exc)
-        },
-    )
-
-
-
-# Custom 404 handler
-@app.exception_handler(404)
-async def not_found_handler(request: Request, exc):
-    logger.warning(f"404 Not Found: {request.url}")
-    return JSONResponse(
-        status_code=404,
-        content={"success": False, "error": "HTTPException"}
+        content={"success": False, "error": str(exc)}
     )
 
 # CORS Middleware (production-ready)
 
 # CORS Middleware (production-ready)
-frontend_origin = os.environ.get("FRONTEND_ORIGIN", "http://localhost:3000")
+frontend_origins = os.environ.get("FRONTEND_ORIGINS", "http://localhost:3000,http://localhost:4100").split(",")
+# In production, restrict to your real frontend domain only
+if os.environ.get("ENV", "development") == "production":
+    frontend_origins = [os.environ.get("PROD_FRONTEND_ORIGIN", "https://yourdomain.com")]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_origin],
+    allow_origins=[origin.strip() for origin in frontend_origins if origin.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]

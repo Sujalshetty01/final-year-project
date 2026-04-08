@@ -6,19 +6,11 @@ sqlalchemy==2.0.29
 sentry-sdk==1.45.0
 # Linting and formatting tools
 flake8
-black
-isort
-# Configuration management
-pydantic-settings==2.2.1
-# ML dependencies
-scikit-learn==1.4.1.post1
-# Rate limiting
-slowapi==0.1.8
-# Core FastAPI stack
-fastapi==0.110.0
-starlette==0.36.3
-pydantic==2.6.4
-# Backend requirements
+flake8==7.0.0
+black==24.3.0
+isort==5.13.2
+requests==2.33.1
+joblib==1.5.3
 # This file purposely references the CPU-friendly core requirements to
 # avoid installing GPU-specific PyTorch wheels during local development/CI.
 

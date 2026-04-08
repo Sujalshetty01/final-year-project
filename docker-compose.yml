@@ -67,7 +67,8 @@ services:
     ports:
       - "4100:80"
     environment:
-      REACT_APP_API_URL: "http://localhost:8000/api/v1"
+      # For Docker Compose, use backend service name for API URL
+      REACT_APP_API_URL: "http://backend:8000/api/v1" # Only works inside Docker Compose
     networks:
       - malware-net
     restart: unless-stopped
@@ -106,16 +107,37 @@ services:
       retries: 5
       start_period: 30s
     networks:
-      - malware-net
-  
-  # Frontend Service
-  # (duplicate removed)
-  
-  # healthcheck-init service removed
-
-# Network definition
-networks:
-  malware-net:
+      backend:
+        build:
+          context: ./backend
+        container_name: malware-api
+        ports:
+          - "8000:8000" # Expose backend API on host and Docker network
+        env_file:
+          - .env
+        environment:
+          PYTHONPATH: "/app"
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+          interval: 30s
+          timeout: 10s
+          retries: 5
+          start_period: 30s
+        # Resource limits
+        deploy:
+          resources:
+            limits:
+              memory: 4G
+            reservations:
+              memory: 2G
+        depends_on:
+          db:
+            condition: service_healthy
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
     driver: bridge
 
 volumes:

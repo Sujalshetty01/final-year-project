@@ -12,10 +12,45 @@ See DEPLOYMENT.md for full details.
   ./scripts/migrate.sh
   ```
 4. Access:
-  - Frontend: http://localhost:8090
-  - Backend:  http://localhost:8001
+  - Frontend: http://localhost:4100
+  - Backend:  http://localhost:8000
   - Grafana:  http://localhost:3001 (admin/admin)
   - Prometheus: http://localhost:9090
+---
+
+## Frontend/Backend API URL Configuration
+
+### Local Development
+- Start backend: `uvicorn main:app --host 0.0.0.0 --port 8000` (from backend directory)
+- Start frontend: `npm start` (from frontend directory)
+- Ensure `.env` in frontend contains:
+  ```
+  REACT_APP_API_URL=http://localhost:8000/api/v1
+  ```
+- Access frontend at http://localhost:4100 and backend at http://localhost:8000
+
+### Docker Compose
+- Start all services: `docker compose up --build -d`
+- Frontend uses API URL: `http://backend:8000/api/v1` (set in docker-compose.yml)
+- Access frontend at http://localhost:4100 and backend at http://localhost:8000
+
+### Preventing Common Mistakes
+- Use `localhost` in `.env` for local dev only.
+- Use `backend` only in Docker Compose (never in `.env`).
+- The system auto-detects and warns if API URL is likely misconfigured.
+
+### Connectivity Test
+- The frontend checks `/api/v1/health` on load and logs a clear error if backend is unreachable.
+
+### Troubleshooting
+- If frontend cannot reach backend:
+  - Check API URL in `.env` (local) or `docker-compose.yml` (Docker)
+  - For local: both must run on your host, and backend must expose port 8000
+  - For Docker: both must be up, and frontend must use `http://backend:8000/api/v1`
+- Test backend health: `curl http://localhost:8000/api/v1/health`
+- Check Docker Compose logs: `docker compose logs frontend` and `docker compose logs backend`
+
+---
 
 ## 📊 Monitoring & Observability
 
@@ -74,6 +109,98 @@ A modern, full-stack malware classification platform leveraging Deep Learning (G
 
 ---
 
+
+## 🏁 API Endpoints Overview
+
+- `/` — Root endpoint. Returns API status and useful links:
+  ```json
+  {
+    "success": true,
+    "message": "API is running",
+    "docs": "/docs",
+    "health": "/api/v1/health"
+  }
+  ```
+- `/api/v1/health` — Health check endpoint. Example response:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "status": "healthy",
+      "message": "API is healthy"
+    }
+  }
+  ```
+- `/api/v1/analyze` — Analyze uploaded data (see API docs for details)
+- `/api/v1/result/{id}` — Get analysis result by ID
+
+**Note:**
+- Accessing undefined routes (e.g., `/`) returns a clean error:
+  ```json
+  { "success": false, "error": "Not Found" }
+  ```
+- Use `/docs` for interactive API documentation.
+
+---
+
+## 🏗️ Running Locally vs Docker Compose
+
+### Local Development
+- Start backend: `uvicorn main:app --host 0.0.0.0 --port 8000` (from backend directory)
+- Start frontend: `npm start` (from frontend directory)
+- Ensure `.env` in frontend contains:
+  ```
+  REACT_APP_API_URL=http://localhost:8000/api/v1
+  ```
+- Access frontend at http://localhost:4100 and backend at http://localhost:8000
+
+### Docker Compose
+- Start all services: `docker compose up --build -d`
+- Frontend uses API URL: `http://backend:8000/api/v1` (set in docker-compose.yml)
+- Access frontend at http://localhost:4100 and backend at http://localhost:8000
+
+### Troubleshooting Connectivity
+- If frontend cannot reach backend:
+  - Check API URL in `.env` (local) or `docker-compose.yml` (Docker)
+  - For local: both must run on your host, and backend must expose port 8000
+  - For Docker: both must be up, and frontend must use `http://backend:8000/api/v1`
+- Test backend health: `curl http://localhost:8000/api/v1/health`
+- Check Docker Compose logs: `docker compose logs frontend` and `docker compose logs backend`
+
+---
+
+## 🏁 API Endpoints Overview
+
+- `/` — Root endpoint. Returns API status and useful links:
+  ```json
+  {
+    "success": true,
+    "message": "API is running",
+    "docs": "/docs",
+    "health": "/api/v1/health"
+  }
+  ```
+- `/api/v1/health` — Health check endpoint. Example response:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "status": "healthy",
+      "message": "API is healthy"
+    }
+  }
+  ```
+- `/api/v1/analyze` — Analyze uploaded data (see API docs for details)
+- `/api/v1/result/{id}` — Get analysis result by ID
+
+**Note:**
+- Accessing undefined routes (e.g., `/`) returns a clean error:
+  ```json
+  { "success": false, "error": "Not Found" }
+  ```
+- Use `/docs` for interactive API documentation.
+
+---
 
 ## 🏗️ Architecture Overview
 
@@ -1490,3 +1617,55 @@ For questions or issues, contact:
 - **Guide:** Prof. Vinitha V
 - **Institution:** 
 - **Academic Year:** 2025-2026
+
+---
+
+## 🗄️ Database Backup & Restore
+
+### Manual Backup
+- Run the following to create a compressed, timestamped backup:
+  ```bash
+  ./scripts/backup_db.sh
+  ```
+- Backups are stored in the `/backups` directory (relative to project root).
+- The script uses environment variables for DB connection (see below).
+
+### Manual Restore
+- Restore from a backup file (e.g., `malware_db_backup_YYYYMMDD_HHMMSS.sql.gz`):
+  ```bash
+  ./scripts/restore_db.sh /backups/<backup_file.sql.gz>
+  ```
+- The script validates the backup file and restores to the configured database.
+
+### Automated Backups
+- **Docker Compose:**
+  - A `backup` service is included in `docker-compose.yml`.
+  - It runs `backup_db.sh` daily (every 24h) and stores backups in `/backups`.
+  - Backups are persisted on the host via a bind mount.
+- **Cron (non-Docker):**
+  - You can add a cron job to run `backup_db.sh` daily:
+    ```cron
+    0 2 * * * /path/to/project/scripts/backup_db.sh
+    ```
+
+### Environment Variables
+| Variable         | Description                | Default         |
+|------------------|---------------------------|-----------------|
+| POSTGRES_HOST    | Database host             | db              |
+| POSTGRES_PORT    | Database port             | 5432            |
+| POSTGRES_DB      | Database name             | malware_db      |
+| POSTGRES_USER    | Database user             | malware_user    |
+| POSTGRES_PASSWORD| Database password         | malware_pass    |
+| BACKUP_DIR       | Backup output directory   | ../backups      |
+
+### File Locations
+- **Backup script:** `scripts/backup_db.sh`
+- **Restore script:** `scripts/restore_db.sh`
+- **Backups:** `backups/` (created automatically)
+
+### Troubleshooting
+- **Backup fails with authentication error:** Ensure `POSTGRES_PASSWORD` is set and correct.
+- **Restore fails with gzip error:** Check that the backup file is not corrupted and is a valid `.gz` file.
+- **Permission denied:** Ensure scripts are executable (`chmod +x scripts/backup_db.sh scripts/restore_db.sh`).
+- **Docker backup service not running:** Check logs with `docker compose logs backup`.
+- **Backups not appearing:** Confirm the `/backups` directory exists and is writable by the backup service.

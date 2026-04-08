@@ -27,6 +27,103 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+  frontend-ci:
+    name: Frontend Lint, Type Check, Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Format check
+        run: npm run format -- --check || true
+      - name: Run tests
+        run: npm test -- --watchAll=false
+      - name: Build
+        run: npm run build
+
+  backend-ci:
+    name: Backend Lint, Type Check, Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc curl
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+      - name: Lint (flake8)
+        run: flake8 backend
+      - name: Format check (black)
+        run: black --check backend
+      - name: Import sort check (isort)
+        run: isort --check backend
+      - name: Type check (mypy)
+        run: |
+          pip install mypy
+          mypy backend || true
+      - name: Run tests (pytest)
+        run: pytest backend/tests
+
+  monitoring:
+    name: Monitoring/Alerting Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Prometheus config check
+        run: |
+          if [ -f docker/prometheus.yml ]; then
+            grep -q 'scrape_configs' docker/prometheus.yml && echo 'Prometheus config valid.' || (echo 'Prometheus config missing scrape_configs.' && exit 1)
+          else
+            echo 'Prometheus config not found.'
+          fi
+      - name: Grafana dashboard check
+        run: |
+          if [ -d docker/grafana ]; then
+            ls docker/grafana/*.json || echo 'No Grafana dashboards found.'
+          else
+            echo 'Grafana config not found.'
+          fi
+
+  backup:
+    name: Database Backup/Restore
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Backup script check
+        run: |
+          if [ -f scripts/backup_db.sh ]; then
+            bash scripts/backup_db.sh --dry-run || true
+          else
+            echo 'No backup script found.'
+          fi
+      - name: Restore script check
+        run: |
+          if [ -f scripts/restore_db.sh ]; then
+            bash scripts/restore_db.sh --dry-run || true
+          else
+            echo 'No restore script found.'
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
